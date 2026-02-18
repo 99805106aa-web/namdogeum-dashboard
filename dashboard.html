@@ -4667,6 +4667,24 @@ window.addEventListener('resize', () => {
 });
 
 /* ================================================================
+   GitHub 엑셀 자동 로드 (접속 시 최신 데이터 자동 표시)
+   ================================================================ */
+(async function autoLoadFromGitHub() {
+  const EXCEL_URL = 'https://raw.githubusercontent.com/99805106aa-web/namdogeum-dashboard/main/data.xlsx';
+  try {
+    const response = await fetch(EXCEL_URL);
+    if (!response.ok) return;
+    const arrayBuffer = await response.arrayBuffer();
+    workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array', cellDates: true });
+    const fd = document.getElementById('fileDrop');
+    if (fd) fd.innerHTML = '<div style="color:var(--primary);font-weight:600;font-size:13px">✅ 최신 데이터 자동 로드됨 (GitHub)</div>';
+    populateSheets();
+    await new Promise(r => setTimeout(r, 300));
+    $('btnAnalyze').click();
+  } catch(e) { /* 실패 시 무시, 아래 localStorage 복원으로 fallback */ }
+})();
+
+/* ================================================================
    페이지 로드 시 마지막 분석 결과 복원
    ================================================================ */
 (function restoreLastAnalysis() {
