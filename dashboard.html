@@ -1243,10 +1243,17 @@ function rerenderAIDiagnosis() {
 }
 
 function dateStr(v) {
-  if (v instanceof Date) return v.toISOString().slice(0,10);
+  if (v instanceof Date) {
+    // toISOString()은 UTC 기준이라 KST에서 하루 밀림 → 로컬 시간 메서드 사용
+    return v.getFullYear() + '-' +
+      String(v.getMonth() + 1).padStart(2, '0') + '-' +
+      String(v.getDate()).padStart(2, '0');
+  }
   if (typeof v === 'number') {
     const d = new Date((v - 25569) * 86400000);
-    return d.toISOString().slice(0,10);
+    return d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0');
   }
   return String(v).slice(0,10);
 }
@@ -3151,8 +3158,8 @@ function makeTableEnhanced(headers, rows, id) {
 /* 종합 품질 점수 (0~100, 감점 방식) */
 function calcQualityScore(kpi, trends, anomalies, riskScores, st) {
   let score = 100;
-  // 1) 불량률 감점 (max -35)
-  score -= Math.min(35, kpi.불량률 / 5 * 35);
+  // 1) 불량률 감점 (max -40, 자동차부품 기준: 1.5%가 한계선)
+  score -= Math.min(40, kpi.불량률 / 1.5 * 40);
   // 2) 위험 품목 감점 (max -20)
   score -= Math.min(20, riskScores.filter(r => r.grade === '위험').length * 7);
   // 3) 이상 징후 감점 (max -15)
@@ -3166,7 +3173,16 @@ function calcQualityScore(kpi, trends, anomalies, riskScores, st) {
   score -= Math.min(15, anomalies.filter(a => a.type === 'ucl').length * 5);
 
   score = Math.max(0, Math.min(100, Math.round(score)));
-  const letterGrade = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F';
+  let letterGrade = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F';
+
+  // 불량률 기반 등급 상한 적용 (자동차 부품 기준)
+  // 0.0~0.3%: A, 0.3~0.7%: B, 0.7~1.5%: C, 1.5~3.0%: D, 3.0%+: F
+  const dr = kpi.불량률;
+  if      (dr >= 3.0)                                letterGrade = 'F';
+  else if (dr >= 1.5 && 'ABC'.includes(letterGrade)) letterGrade = 'D';
+  else if (dr >= 0.7 && 'AB'.includes(letterGrade))  letterGrade = 'C';
+  else if (dr >= 0.3 && letterGrade === 'A')         letterGrade = 'B';
+
   const verdicts = {
     A: '품질이 매우 우수합니다. 현재 상태를 유지하세요.',
     B: '품질이 양호합니다. 일부 항목을 모니터링하세요.',
@@ -4033,9 +4049,11 @@ function renderAIDiagnosis(kpi, byDate, byItem, filtered) {
   html += '<div class="ai-detail-section" id="aiDetailSection" style="display:none">';
 
   // 간소화된 3개 통계 카드
-  const sigmaGrade = st.sigmaLevel >= 5 ? 'S' : st.sigmaLevel >= 4 ? 'A' : st.sigmaLevel >= 3 ? 'B' : st.sigmaLevel >= 2.5 ? 'C' : 'D';
-  const sigmaDesc = { S:'세계 최고 수준', A:'우수한 품질', B:'양호한 품질', C:'개선 필요', D:'집중 관리 필요' };
-  const sigmaColor = { S:'#16A34A', A:'#22C55E', B:'#2563EB', C:'#F59E0B', D:'#DC2626' };
+  // 자동차 부품 기준 시그마 등급 (엄격 적용)
+  // S: ≥5σ, A: ≥4.5σ(≤0.13%), B: ≥4σ(≤0.62%), C: ≥3.5σ(≤2.27%), D: ≥3σ, F: <3σ
+  const sigmaGrade = st.sigmaLevel >= 5 ? 'S' : st.sigmaLevel >= 4.5 ? 'A' : st.sigmaLevel >= 4 ? 'B' : st.sigmaLevel >= 3.5 ? 'C' : st.sigmaLevel >= 3 ? 'D' : 'F';
+  const sigmaDesc = { S:'세계 최고 수준', A:'우수한 품질', B:'양호한 품질', C:'개선 필요', D:'집중 관리 필요', F:'긴급 개선 필요' };
+  const sigmaColor = { S:'#16A34A', A:'#22C55E', B:'#2563EB', C:'#F59E0B', D:'#DC2626', F:'#991B1B' };
   const weekTrend = st.last7Avg < st.prev7Avg ? '개선중' : st.last7Avg > st.prev7Avg ? '악화중' : '유지';
   const weekTrendColor = st.last7Avg < st.prev7Avg ? 'var(--success)' : st.last7Avg > st.prev7Avg ? 'var(--danger)' : 'var(--gray)';
   const avgDailyBad = byDate.length ? Math.round(byDate.reduce((s,r)=>s+r.불량수량,0)/byDate.length) : 0;
