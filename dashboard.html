@@ -689,6 +689,10 @@ body.dark .t1-insight-box { background: linear-gradient(135deg, #1E293B 0%, #1E1
   .t1-status-banner { flex-wrap: wrap; font-size: 14px; }
   .t1-status-banner .t1-sb-score { font-size: 22px; }
   .t1-kpi-group-title { font-size: 11px; margin-bottom: 4px; }
+  /* 3개 카드 그룹에서 마지막 카드가 한쪽으로 치우치지 않게 전체 폭 사용 */
+  .t1-kpi-group .kpi-grid:not(.kpi-grid-2) .kpi-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── AI 품질진단 (Tab9) ── */
