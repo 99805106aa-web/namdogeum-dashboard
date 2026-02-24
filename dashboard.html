@@ -2912,9 +2912,43 @@ function renderPeriodComparison(data, el) {
 
 function runComparison(data) {
   const a1=$('cmpA1').value,a2=$('cmpA2').value,b1=$('cmpB1').value,b2=$('cmpB2').value;
+  const allDates = data.map(r=>dateStr(r.생산일자)).sort();
+  const dataMin = allDates[0], dataMax = allDates[allDates.length-1];
+  if (!a1 || !a2 || !b1 || !b2) {
+    $('cmpResult').innerHTML = '<div class="info-box warn">비교 기간을 모두 선택해 주세요.</div>';
+    return;
+  }
+  if (a1 > a2 || b1 > b2) {
+    $('cmpResult').innerHTML = '<div class="info-box warn">기간 시작일이 종료일보다 늦을 수 없습니다.</div>';
+    return;
+  }
   const grpA=data.filter(r=>{const d=dateStr(r.생산일자);return d>=a1&&d<=a2;});
   const grpB=data.filter(r=>{const d=dateStr(r.생산일자);return d>=b1&&d<=b2;});
-  if(!grpA.length||!grpB.length){$('cmpResult').innerHTML='<div class="info-box warn">두 기간 모두 데이터가 있어야 합니다.</div>';return;}
+  if(!grpA.length||!grpB.length){
+    $('cmpResult').innerHTML =
+      `<div class="info-box warn">
+        두 기간 모두 데이터가 있어야 합니다.<br>
+        데이터 보유 범위: <b>${dataMin} ~ ${dataMax}</b><br>
+        요청 A: ${a1} ~ ${a2} (${grpA.length}건), 요청 B: ${b1} ~ ${b2} (${grpB.length}건)
+      </div>`;
+    return;
+  }
+
+  const datesA = grpA.map(r=>dateStr(r.생산일자)).sort();
+  const datesB = grpB.map(r=>dateStr(r.생산일자)).sort();
+  const reqA = `${a1} ~ ${a2}`;
+  const reqB = `${b1} ~ ${b2}`;
+  const actA = `${datesA[0]} ~ ${datesA[datesA.length-1]}`;
+  const actB = `${datesB[0]} ~ ${datesB[datesB.length-1]}`;
+  const daysA = new Set(datesA).size;
+  const daysB = new Set(datesB).size;
+  const partialA = (a1 < dataMin || a2 > dataMax || actA !== reqA);
+  const partialB = (b1 < dataMin || b2 > dataMax || actB !== reqB);
+  const periodBoxClass = (partialA || partialB) ? 'warn' : 'info';
+  const periodBoxText = (partialA || partialB)
+    ? '<span style="color:var(--danger);font-weight:700">요청 기간과 실제 분석 기간이 다릅니다. (데이터 없는 구간 제외)</span>'
+    : '<span style="color:var(--success);font-weight:700">요청 기간과 실제 분석 기간이 동일합니다.</span>';
+
   const kA=calcKPI(grpA),kB=calcKPI(grpB);
   const items=[
     {label:'생산수량',a:kA.총생산수량,b:kB.총생산수량,fmt:fmt},
@@ -2922,7 +2956,13 @@ function runComparison(data) {
     {label:'불량률(%)',a:kA.불량률,b:kB.불량률,fmt:v=>pct(v)},
     {label:'불량 PPM',a:kA.PPM,b:kB.PPM,fmt:v=>fmt(Math.round(v))},
   ];
-  let html='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">';
+  let html = `<div class="info-box ${periodBoxClass}" style="margin-bottom:12px;line-height:1.7">
+    ${periodBoxText}<br>
+    데이터 보유 범위: <b>${dataMin} ~ ${dataMax}</b><br>
+    기간 A 요청: ${reqA} / 실제 사용: <b>${actA}</b> (${daysA}일, ${grpA.length}건)<br>
+    기간 B 요청: ${reqB} / 실제 사용: <b>${actB}</b> (${daysB}일, ${grpB.length}건)
+  </div>`;
+  html += '<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">';
   for(const it of items){
     const diff=it.b-it.a;
     const arrow=it.label.includes('불량')?(diff>0?'▲ 악화':'▼ 개선'):(diff>0?'▲ 증가':'▼ 감소');
