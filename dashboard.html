@@ -215,6 +215,7 @@ select[multiple] { height: 130px; min-height: 130px; }
   gap: 14px;
   margin-bottom: 24px;
 }
+.kpi-grid.kpi-grid-2 { grid-template-columns: repeat(2, 1fr); }
 .kpi-card {
   background: var(--card);
   border-radius: 12px;
@@ -649,6 +650,9 @@ body.dark .t1-status-banner.danger { background: #7F1D1D; color: #FCA5A5; border
 .t1-status-banner .t1-sb-score { font-size: 28px; font-weight: 900; }
 .t1-status-banner .t1-sb-text { flex: 1; }
 .t1-status-banner .t1-sb-sub { font-size: 12px; font-weight: 400; opacity: .8; margin-top: 2px; }
+.t1-kpi-groups { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.t1-kpi-group-title { font-size: 12px; color: var(--text-light); font-weight: 700; margin: 0 2px 6px; }
+.t1-kpi-groups .kpi-grid { margin-bottom: 0; }
 
 .t1-top5-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .t1-top5-bar:last-child { border-bottom: none; }
@@ -684,6 +688,7 @@ body.dark .t1-insight-box { background: linear-gradient(135deg, #1E293B 0%, #1E1
   .t1-mini-card .t1-mc-rate { font-size: 16px; }
   .t1-status-banner { flex-wrap: wrap; font-size: 14px; }
   .t1-status-banner .t1-sb-score { font-size: 22px; }
+  .t1-kpi-group-title { font-size: 11px; margin-bottom: 4px; }
 }
 
 /* ── AI 품질진단 (Tab9) ── */
@@ -1114,6 +1119,8 @@ const isMobile = () => window.innerWidth <= 768;
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString('ko-KR');
 const pct = (n, d=2) => Number(n).toFixed(d) + '%';
+const calcDefectRate = (bad, prod) => prod > 0 ? bad / prod : 0;
+const calcPPM = (bad, prod) => calcDefectRate(bad, prod) * 1000000;
 
 const TARGET_DEFECT_RATE_KEY = 'ndm_targetDefectRate';
 const DEFAULT_TARGET_DEFECT_RATE = 0.8;
@@ -1546,7 +1553,7 @@ function autoDetectMapping() {
     for (let i = badIdx + 1; i < columns.length; i++) {
       const col = columns[i];
       if (used.has(col)) continue;
-      if (col.includes('불량률')) continue;
+      if (col.includes('불량률') || col.toUpperCase().includes('PPM')) continue;
       const isNum = rawData.slice(0, 10).some(r => {
         const v = r[col];
         return v != null && !isNaN(Number(v));
@@ -1638,7 +1645,8 @@ function cleanData(data) {
     for (const dc of defectCols) {
       obj[dc] = toNum(row[dc]);
     }
-    obj['불량률'] = obj.불량수량 / obj.생산수량;
+    obj['불량률'] = calcDefectRate(obj.불량수량, obj.생산수량);
+    obj['PPM'] = calcPPM(obj.불량수량, obj.생산수량);
     result.push(obj);
   }
   return result;
@@ -1658,6 +1666,7 @@ function calcKPI(data) {
   return {
     총생산수량: prod, 총양품수량: good, 총불량수량: bad,
     불량률: prod ? (bad/prod*100) : 0,
+    PPM: calcPPM(bad, prod),
     품목수: items.size, 생산일수: dates.size,
   };
 }
@@ -1676,7 +1685,10 @@ function aggByDate(data) {
     for (const dc of defectCols) o[dc] += r[dc];
   }
   const arr = [...map.values()].sort((a,b) => a.생산일자.localeCompare(b.생산일자));
-  arr.forEach(o => o.불량률 = o.생산수량 ? o.불량수량/o.생산수량 : 0);
+  arr.forEach(o => {
+    o.불량률 = calcDefectRate(o.불량수량, o.생산수량);
+    o.PPM = calcPPM(o.불량수량, o.생산수량);
+  });
   return arr;
 }
 
@@ -1693,7 +1705,10 @@ function aggByItem(data) {
     for (const dc of defectCols) o[dc] += r[dc];
   }
   const arr = [...map.values()];
-  arr.forEach(o => o.불량률 = o.생산수량 ? o.불량수량/o.생산수량 : 0);
+  arr.forEach(o => {
+    o.불량률 = calcDefectRate(o.불량수량, o.생산수량);
+    o.PPM = calcPPM(o.불량수량, o.생산수량);
+  });
   arr.sort((a,b) => b.불량수량 - a.불량수량);
   return arr;
 }
@@ -1744,6 +1759,7 @@ function chartKPI(kpi, el) {
     { label:'총 양품수량', value: fmt(kpi.총양품수량), color:'var(--success)' },
     { label:'총 불량수량', value: fmt(kpi.총불량수량), color:'var(--danger)' },
     { label:'불량률', value: pct(kpi.불량률), color:'var(--warning)' },
+    { label:'PPM', value: fmt(Math.round(kpi.PPM || 0)), color:'var(--warning)' },
     { label:'품목수', value: kpi.품목수 + '개', color:'var(--gray)' },
     { label:'생산일수', value: kpi.생산일수 + '일', color:'var(--gray)' },
   ];
@@ -2220,21 +2236,22 @@ function exportExcel(kpi, byDate, byItem, totals) {
     ['지표','값'],
     ['총 생산수량', kpi.총생산수량], ['총 양품수량', kpi.총양품수량],
     ['총 불량수량', kpi.총불량수량], ['전체 불량률(%)', kpi.불량률.toFixed(2)],
+    ['전체 PPM', Math.round(kpi.PPM ?? calcPPM(kpi.총불량수량, kpi.총생산수량))],
     ['품목수', kpi.품목수], ['생산일수', kpi.생산일수],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(kpiData), '요약_KPI');
 
-  const dateHeaders = ['생산일자','생산수량','양품수량','불량수량',...defectCols,'불량률(%)'];
+  const dateHeaders = ['생산일자','생산수량','양품수량','불량수량',...defectCols,'불량률(%)','PPM'];
   const dateRows = [dateHeaders, ...byDate.map(r => [
     r.생산일자, r.생산수량, r.양품수량, r.불량수량,
-    ...defectCols.map(dc=>r[dc]), (r.불량률*100).toFixed(2)
+    ...defectCols.map(dc=>r[dc]), (r.불량률*100).toFixed(2), Math.round(r.PPM ?? calcPPM(r.불량수량, r.생산수량))
   ])];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dateRows), '일자별_집계');
 
-  const itemHeaders = ['품명','생산수량','양품수량','불량수량',...defectCols,'불량률(%)'];
+  const itemHeaders = ['품명','생산수량','양품수량','불량수량',...defectCols,'불량률(%)','PPM'];
   const itemRows = [itemHeaders, ...byItem.map(r => [
     r.품명, r.생산수량, r.양품수량, r.불량수량,
-    ...defectCols.map(dc=>r[dc]), (r.불량률*100).toFixed(2)
+    ...defectCols.map(dc=>r[dc]), (r.불량률*100).toFixed(2), Math.round(r.PPM ?? calcPPM(r.불량수량, r.생산수량))
   ])];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), '품목별_집계');
 
@@ -2533,7 +2550,12 @@ function aggByWeek(data) {
     const o=map.get(key); o.생산수량+=r.생산수량; o.양품수량+=r.양품수량; o.불량수량+=r.불량수량;
     for(const dc of defectCols) o[dc]+=r[dc];
   }
-  const arr=[...map.values()]; arr.forEach(o=>o.불량률=o.생산수량?o.불량수량/o.생산수량:0); return arr;
+  const arr=[...map.values()];
+  arr.forEach(o=>{
+    o.불량률 = calcDefectRate(o.불량수량, o.생산수량);
+    o.PPM = calcPPM(o.불량수량, o.생산수량);
+  });
+  return arr;
 }
 
 function aggByMonth(data) {
@@ -2545,7 +2567,11 @@ function aggByMonth(data) {
     for(const dc of defectCols) o[dc]+=r[dc];
   }
   const arr=[...map.values()].sort((a,b)=>a.생산일자.localeCompare(b.생산일자));
-  arr.forEach(o=>o.불량률=o.생산수량?o.불량수량/o.생산수량:0); return arr;
+  arr.forEach(o=>{
+    o.불량률 = calcDefectRate(o.불량수량, o.생산수량);
+    o.PPM = calcPPM(o.불량수량, o.생산수량);
+  });
+  return arr;
 }
 
 /* ================================================================
@@ -2890,8 +2916,9 @@ function runComparison(data) {
     {label:'생산수량',a:kA.총생산수량,b:kB.총생산수량,fmt:fmt},
     {label:'불량수량',a:kA.총불량수량,b:kB.총불량수량,fmt:fmt},
     {label:'불량률(%)',a:kA.불량률,b:kB.불량률,fmt:v=>pct(v)},
+    {label:'불량 PPM',a:kA.PPM,b:kB.PPM,fmt:v=>fmt(Math.round(v))},
   ];
-  let html='<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">';
+  let html='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">';
   for(const it of items){
     const diff=it.b-it.a;
     const arrow=it.label.includes('불량')?(diff>0?'▲ 악화':'▼ 개선'):(diff>0?'▲ 증가':'▼ 감소');
@@ -2899,7 +2926,7 @@ function runComparison(data) {
     html+=`<div class="kpi-card"><div class="label">${it.label}</div>
       <div style="font-size:13px;color:var(--text-light)">A: ${it.fmt(it.a)}</div>
       <div style="font-size:13px;color:var(--text-light)">B: ${it.fmt(it.b)}</div>
-      <div class="value" style="font-size:16px;color:${color}">${arrow} ${it.label.includes('률')?pct(Math.abs(diff)):fmt(Math.abs(diff))}</div></div>`;
+      <div class="value" style="font-size:16px;color:${color}">${arrow} ${it.label.includes('률') ? pct(Math.abs(diff)) : (it.label.toUpperCase().includes('PPM') ? fmt(Math.round(Math.abs(diff))) : fmt(Math.abs(diff)))}</div></div>`;
   }
   html+='</div>';
 
@@ -3023,6 +3050,7 @@ function renderDrilldown(data, byItem, el) {
         양품수량: itemSummary.양품수량,
         불량수량: itemSummary.불량수량,
         불량률: itemSummary.불량률,
+        PPM: Number.isFinite(itemSummary.PPM) ? itemSummary.PPM : calcPPM(itemSummary.불량수량, itemSummary.생산수량),
         ...defectCols.reduce((o, dc) => { o[dc] = itemSummary[dc] || 0; return o; }, {})
       }] : [];
     }
@@ -3032,12 +3060,13 @@ function renderDrilldown(data, byItem, el) {
     const targetEl = mb ? $('drillModalContent') : null;
 
     let rHtml=`<h3 style="margin-bottom:12px;font-size:16px">${item}</h3>`;
-    rHtml+='<div class="kpi-grid" style="grid-template-columns:repeat('+( mb?'2':'4')+',1fr);margin:12px 0">';
+    rHtml+='<div class="kpi-grid" style="grid-template-columns:repeat('+( mb?'2':'5')+',1fr);margin:12px 0">';
     const totP=rows.reduce((s,r)=>s+r.생산수량,0), totB=rows.reduce((s,r)=>s+r.불량수량,0);
     rHtml+=`<div class="kpi-card"><div class="value" style="color:var(--primary)">${fmt(totP)}</div><div class="label">총 생산</div></div>`;
     rHtml+=`<div class="kpi-card"><div class="value" style="color:var(--success)">${fmt(totP-totB)}</div><div class="label">양품</div></div>`;
     rHtml+=`<div class="kpi-card"><div class="value" style="color:var(--danger)">${fmt(totB)}</div><div class="label">불량</div></div>`;
     rHtml+=`<div class="kpi-card"><div class="value" style="color:var(--warning)">${pct(totP?totB/totP*100:0)}</div><div class="label">불량률</div></div>`;
+    rHtml+=`<div class="kpi-card"><div class="value" style="color:var(--warning)">${fmt(Math.round(calcPPM(totB, totP)))}</div><div class="label">PPM</div></div>`;
     rHtml+='</div>';
     const trendId = mb ? 'drillTrendM' : 'drillTrend';
     const pieId = mb ? 'drillPieM' : 'drillDefectPie';
@@ -3113,7 +3142,15 @@ function makeTableEnhanced(headers, rows, id) {
       let style='';
       let trend='';
 
-      if(h.includes('률')&&typeof v==='number'){
+      if(h.toUpperCase().includes('PPM') && typeof v==='number'){
+        // PPM은 정수 표시가 일반적이라 반올림하여 가독성 확보
+        if(prev && typeof prev[h]==='number'){
+          const diff = Math.round(v) - Math.round(prev[h]);
+          if(diff>0) trend=`<span style="color:#DC2626;font-size:10px;margin-left:3px">▲${fmt(Math.abs(diff))}</span>`;
+          else if(diff<0) trend=`<span style="color:#2563EB;font-size:10px;margin-left:3px">▼${fmt(Math.abs(diff))}</span>`;
+        }
+        v = fmt(Math.round(v));
+      } else if(h.includes('률')&&typeof v==='number'){
         const rate=v*100;
         // 전일 대비 증감 (소수점 3자리 + 상대변동률)
         if(prev && typeof prev[h]==='number'){
@@ -4242,6 +4279,19 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
     +String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   $('lastAnalysisDate').textContent = '최근 분석: ' + nowLabel;
 
+  // 이전 저장 데이터(구버전) 호환: 불량률/PPM이 없으면 즉시 보정
+  if (!Number.isFinite(kpi.PPM)) {
+    kpi.PPM = calcPPM(kpi.총불량수량, kpi.총생산수량);
+  }
+  byDate.forEach(r => {
+    if (!Number.isFinite(r.불량률)) r.불량률 = calcDefectRate(r.불량수량, r.생산수량);
+    if (!Number.isFinite(r.PPM)) r.PPM = calcPPM(r.불량수량, r.생산수량);
+  });
+  byItem.forEach(r => {
+    if (!Number.isFinite(r.불량률)) r.불량률 = calcDefectRate(r.불량수량, r.생산수량);
+    if (!Number.isFinite(r.PPM)) r.PPM = calcPPM(r.불량수량, r.생산수량);
+  });
+
   // ── 탭1: 전체 요약 (HTML 먼저 구성 후 차트 생성) ──
   const t1 = $('tab1');
   const weekChg = calcWeekChange(filtered);
@@ -4270,7 +4320,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
     <span class="t1-sb-score">${t1BannerEmoji} ${t1QS.letterGrade}</span>
     <div class="t1-sb-text">
       품질 종합 점수 <b>${t1QS.score}점</b> — ${t1QS.verdict}
-      <div class="t1-sb-sub">불량률 ${pct(kpi.불량률)} (목표 ${targetDefectRate.toFixed(1)}%) ${t1TargetBadge} | 양품률 ${pct(kpi.총생산수량 ? kpi.총양품수량/kpi.총생산수량*100 : 100)} | ${kpi.품목수}개 품목 / ${kpi.생산일수}일간 분석</div>
+      <div class="t1-sb-sub">불량률 ${pct(kpi.불량률)} (목표 ${targetDefectRate.toFixed(1)}%) ${t1TargetBadge} | PPM ${fmt(Math.round(kpi.PPM))} | 양품률 ${pct(kpi.총생산수량 ? kpi.총양품수량/kpi.총생산수량*100 : 100)} | ${kpi.품목수}개 품목 / ${kpi.생산일수}일간 분석</div>
     </div>
   </div>`;
 
@@ -4390,26 +4440,61 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   t1KpiEl.innerHTML = '';
   const t1DailyBad = kpi.생산일수 ? Math.round(kpi.총불량수량 / kpi.생산일수) : 0;
   const t1OverDays = byDate.filter(r => r.불량률 * 100 > targetDefectRate).length;
-  const t1Cards = [
-    { label:'총 생산수량', value: fmt(kpi.총생산수량), color:'var(--primary)' },
-    { label:'총 양품수량', value: fmt(kpi.총양품수량), color:'var(--success)' },
-    { label:'총 불량수량', value: fmt(kpi.총불량수량), color:'var(--danger)' },
-    { label:'불량률', value: pct(kpi.불량률), color: t1TargetOver ? 'var(--danger)' : 'var(--warning)' },
-    { label:'목표 불량률', value: targetDefectRate.toFixed(1) + '%', color: t1TargetOver ? 'var(--danger)' : 'var(--success)', sub: t1TargetOver ? '초과' : '달성' },
-    { label:'양품률', value: pct(t1YieldRate), color:'var(--success)' },
-    { label:'시그마 수준', value: t1Stats.sigmaLevel.toFixed(1) + 'σ', color:'var(--primary)' },
-    { label:'일평균 생산', value: fmt(t1DailyProd) + '개', color:'var(--primary)' },
-    { label:'일평균 불량', value: fmt(t1DailyBad) + '개', color:'var(--danger)' },
-    { label:'목표 초과 일수', value: t1OverDays + '/' + byDate.length + '일', color: t1OverDays > 0 ? 'var(--danger)' : 'var(--success)' },
-    { label:'품목수', value: kpi.품목수 + '개', color:'var(--gray)' },
-    { label:'생산일수', value: kpi.생산일수 + '일', color:'var(--gray)' },
+  const t1CardGroups = [
+    {
+      title: '생산 지표',
+      cards: [
+        { label:'총 생산수량', value: fmt(kpi.총생산수량), color:'var(--primary)' },
+        { label:'총 양품수량', value: fmt(kpi.총양품수량), color:'var(--success)' },
+        { label:'총 불량수량', value: fmt(kpi.총불량수량), color:'var(--danger)' },
+      ]
+    },
+    {
+      title: '품질 지표',
+      cards: [
+        { label:'불량률', value: pct(kpi.불량률), color: t1TargetOver ? 'var(--danger)' : 'var(--warning)' },
+        { label:'PPM', value: fmt(Math.round(kpi.PPM)), color: t1TargetOver ? 'var(--danger)' : 'var(--warning)' },
+        { label:'양품률', value: pct(t1YieldRate), color:'var(--success)' },
+      ]
+    },
+    {
+      title: '목표/관리 지표',
+      cards: [
+        { label:'목표 불량률', value: targetDefectRate.toFixed(1) + '%', color: t1TargetOver ? 'var(--danger)' : 'var(--success)', sub: t1TargetOver ? '초과' : '달성' },
+        { label:'목표 초과 일수', value: t1OverDays + '/' + byDate.length + '일', color: t1OverDays > 0 ? 'var(--danger)' : 'var(--success)' },
+        { label:'시그마 수준', value: t1Stats.sigmaLevel.toFixed(1) + 'σ', color:'var(--primary)' },
+      ]
+    },
+    {
+      title: '운영 지표',
+      cards: [
+        { label:'일평균 생산', value: fmt(t1DailyProd) + '개', color:'var(--primary)' },
+        { label:'일평균 불량', value: fmt(t1DailyBad) + '개', color:'var(--danger)' },
+      ]
+    },
+    {
+      title: '기준 정보',
+      cards: [
+        { label:'품목수', value: kpi.품목수 + '개', color:'var(--gray)' },
+        { label:'생산일수', value: kpi.생산일수 + '일', color:'var(--gray)' },
+      ]
+    },
   ];
-  const t1Grid = document.createElement('div');
-  t1Grid.className = 'kpi-grid';
-  for (const c of t1Cards) {
-    t1Grid.innerHTML += `<div class="kpi-card"><div class="value" style="color:${c.color}">${c.value}</div><div class="label">${c.label}${c.sub ? ' <span style="font-size:10px;font-weight:700;color:'+c.color+'">(' + c.sub + ')</span>' : ''}</div></div>`;
+  const t1Groups = document.createElement('div');
+  t1Groups.className = 't1-kpi-groups';
+  for (const group of t1CardGroups) {
+    const groupWrap = document.createElement('div');
+    groupWrap.className = 't1-kpi-group';
+    groupWrap.innerHTML = `<div class="t1-kpi-group-title">${group.title}</div>`;
+    const row = document.createElement('div');
+    row.className = 'kpi-grid' + (group.cards.length === 2 ? ' kpi-grid-2' : '');
+    for (const c of group.cards) {
+      row.innerHTML += `<div class="kpi-card"><div class="value" style="color:${c.color}">${c.value}</div><div class="label">${c.label}${c.sub ? ' <span style="font-size:10px;font-weight:700;color:'+c.color+'">(' + c.sub + ')</span>' : ''}</div></div>`;
+    }
+    groupWrap.appendChild(row);
+    t1Groups.appendChild(groupWrap);
   }
-  t1KpiEl.appendChild(t1Grid);
+  t1KpiEl.appendChild(t1Groups);
 
   // 차트 렌더링
   chartTrendMA(byDate, $('chartTrendMA'));
@@ -4441,14 +4526,14 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   const t2 = $('tab2');
   const byWeek = (filtered && filtered.length) ? aggByWeek(filtered) : [];
   const byMonth = (filtered && filtered.length) ? aggByMonth(filtered) : [];
-  const dateHeaders = ['생산일자','생산수량','양품수량','불량수량',...defectCols,'불량률'];
+  const dateHeaders = ['생산일자','생산수량','양품수량','불량수량',...defectCols,'불량률','PPM'];
   let t2Html = '<div class="chart-box"><h3>일자별 생산수량 및 불량률 추이</h3><div id="chartDailyTrend"></div></div>';
   if (defectCols.length) {
     t2Html += '<div class="chart-box"><h3>일자별 불량유형 구성</h3><div id="chartDailyStack"></div></div>';
   }
   // 요일별 패턴 + 생산량 vs 불량률 산점도
   t2Html += '<div class="chart-box"><h3>📊 요일별 평균 불량률 패턴</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:4px">어떤 요일에 불량이 많은지 패턴을 확인하세요</p><div class="weekday-chart-box"><div id="chartWeekday"></div><div id="chartProdVsDefect"></div></div></div>';
-  t2Html += `<div class="chart-box"><h3>집계 단위 변환</h3>
+  t2Html += `<div class="chart-box"><h3>집계 단위 변환</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:8px">일별/주별/월별 불량률과 PPM을 함께 비교합니다</p>
     <div style="display:flex;gap:8px;margin-bottom:12px">
       <button class="btn btn-sm btn-primary" onclick="showAggTable('daily')">일별</button>
       <button class="btn btn-sm" style="background:var(--gray);color:#fff" onclick="showAggTable('weekly')">주간</button>
@@ -4469,7 +4554,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
 
   // ── 탭3: 품목별 분석 ── (HTML을 먼저 한번에 구성 후 차트 생성)
   const t3 = $('tab3');
-  const itemHeaders = ['품명','생산수량','양품수량','불량수량','불량률'];
+  const itemHeaders = ['품명','생산수량','양품수량','불량수량','불량률','PPM'];
   // 품목별 추세 배지 (전반부 vs 후반부 비교)
   const t3Top = [...byItem].sort((a,b) => b.불량률 - a.불량률).slice(0, 15);
   let t3TrendHtml = '<div class="chart-box"><h3>📈 품목별 추세 방향 (불량률 TOP 15)</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:8px">전반부 vs 후반부 불량률 비교. ▲악화(+0.5%p 이상), ▼개선(-0.5%p 이상), ─안정</p>';
@@ -4508,7 +4593,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   const t4 = $('tab4');
 
   // 자동 요약 텍스트 (상단 배치)
-  const summaryText = `분석 기간 ${byDate.length > 0 ? dateKRFull(byDate[0].생산일자) + ' ~ ' + dateKRFull(byDate[byDate.length-1].생산일자) : ''} 기준, 총 생산수량 ${fmt(kpi.총생산수량)}개 중 불량 ${fmt(kpi.총불량수량)}개 (불량률 ${pct(kpi.불량률)})가 발생하였습니다.${weekChg.변화 !== 0 ? ' 전주 대비 불량률이 ' + pct(Math.abs(weekChg.변화)) + (weekChg.변화 > 0 ? ' 악화' : ' 개선') + '되었습니다.' : ''}${alerts.length > 0 ? ' 불량률 ' + threshold + '% 초과 품목은 ' + alerts.length + '건입니다.' : ''}`;
+  const summaryText = `분석 기간 ${byDate.length > 0 ? dateKRFull(byDate[0].생산일자) + ' ~ ' + dateKRFull(byDate[byDate.length-1].생산일자) : ''} 기준, 총 생산수량 ${fmt(kpi.총생산수량)}개 중 불량 ${fmt(kpi.총불량수량)}개 (불량률 ${pct(kpi.불량률)}, PPM ${fmt(Math.round(kpi.PPM))})가 발생하였습니다.${weekChg.변화 !== 0 ? ' 전주 대비 불량률이 ' + pct(Math.abs(weekChg.변화)) + (weekChg.변화 > 0 ? ' 악화' : ' 개선') + '되었습니다.' : ''}${alerts.length > 0 ? ' 불량률 ' + threshold + '% 초과 품목은 ' + alerts.length + '건입니다.' : ''}`;
   let alertHtml = `<div class="chart-box"><h3>자동 요약</h3><div class="info-box info" style="line-height:1.6">${summaryText}</div></div>`;
 
   alertHtml += `<div class="chart-box"><h3>불량률 ${threshold}% 초과 품목</h3>`;
