@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git init && git remote add origin https://github.com/99805106aa-web/namdogeum-dashboard.git 2>&1)",
+      "Bash(head:*)",
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git checkout -b main && git add dashboard.html && git status 2>&1)",
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git add dashboard.html bg-factory.jpg logo-color.png logo.png 2>&1)",
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git commit -m \"$\\(cat <<'EOF'\nfeat: 주간보고 대표자 브리핑, 불량률 차트 하이라이트, PPM탭 제거 및 KPI 통합\n\n- 주간보고 대표자 경영 브리핑 블록 추가 \\(신호등/키워드태그/인사이트\\)\n- Tab 1 불량률 추세 차트: 목표 초과 점 빨간 하이라이트 + 배경 음영\n- Tab 10 PPM 분석 탭 제거 → Tab 1 KPI 카드에 PPM·시그마 통합\n- 월별 차트 상단 숫자 잘림 개선 \\(margin t:78, Y축 범위 확대\\)\n- 불량률 추세 차트 날짜 순서 깨짐 수정 \\(categoryarray 고정\\)\n- 월별 생산 실적 1~12월 전체 표시 \\(빈 달 null 처리\\)\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" 2>&1)",
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git config user.email \"99805106aa@github.com\" && git config user.name \"namdogeum\" && git commit -m \"$\\(cat <<'EOF'\nfeat: 주간보고 대표자 브리핑, 불량률 차트 하이라이트, PPM탭 제거 및 KPI 통합\n\n- 주간보고 대표자 경영 브리핑 블록 추가 \\(신호등/키워드태그/인사이트\\)\n- Tab 1 불량률 추세 차트: 목표 초과 점 빨간 하이라이트 + 배경 음영\n- Tab 10 PPM 분석 탭 제거 → Tab 1 KPI 카드에 PPM·시그마 통합\n- 월별 차트 상단 숫자 잘림 개선 \\(margin t:78, Y축 범위 확대\\)\n- 불량률 추세 차트 날짜 순서 깨짐 수정 \\(categoryarray 고정\\)\n- 월별 생산 실적 1~12월 전체 표시 \\(빈 달 null 처리\\)\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" 2>&1)",
+      "Bash(cd \"C:/Users/QC/Downloads/namdogeum-dashboard-main\" && git push -u origin main 2>&1)"
+    ]
+  }
+}
