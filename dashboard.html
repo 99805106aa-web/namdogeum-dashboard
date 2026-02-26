@@ -956,10 +956,175 @@ body.dark th[data-sort="asc"], body.dark th[data-sort="desc"] { background:rgba(
 .item-filter-actions button { flex:1; padding:6px; font-size:11px; border:1px solid var(--border); border-radius:6px; background:var(--white); cursor:pointer; font-weight:600; color:var(--text); }
 .item-filter-actions button:hover { background:var(--primary); color:#fff; }
 body.dark .item-filter-actions button { background:var(--card-dark); border-color:#475569; }
+
+/* ── 탭 서브필터 바 ── */
+.tab-subfilter {
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px; margin-bottom: 12px; font-size: 13px;
+  overflow: hidden;
+}
+.tab-subfilter input[type="date"] {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 6px; font-size: 12px; color: var(--text); background: var(--card);
+  width: 122px; flex-shrink: 0;
+}
+.tab-subfilter-label { font-weight: 600; color: var(--text); white-space: nowrap; font-size: 12px; flex-shrink: 0; }
+.tab-subfilter-info  { font-size: 11px; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.dark .tab-subfilter { background: #1e293b; border-color: #475569; }
+body.dark .tab-subfilter input[type="date"] { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+
+/* ── 인쇄 스타일 (주간 보고서 전용) ── */
+@media print {
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+
+  /* ① 전체 레이아웃 블록 초기화 */
+  html, body {
+    display: block !important;
+    background: #fff !important;
+    min-height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+  }
+  body::before, body::after { display: none !important; }
+
+  /* ② UI 크롬 전체 숨기기 */
+  .sidebar, .menu-toggle, .dark-toggle, .sidebar-overlay,
+  #toastContainer, .loading-overlay, .mobile-analyze-fab,
+  .header-bar, #placeholder, #tabsBar, #tabsMobile,
+  #tab1, #tab2, #tab3, #tab4, #tab5,
+  #tab6, #tab7, #tab8, #tab9,
+  #weekBtnContainer,
+  .tab-subfilter,
+  #tab11 > .chart-box > div:first-child,
+  #tab11 .btn,
+  #weeklyReportText { display: none !important; }
+
+  /* ③ 메인 영역: 전체 너비 */
+  .main, #mainArea, .content-area, #dashboard {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* ④ Tab 11: 화면 전체 차지 */
+  #tab11 {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  #tab11 .chart-box {
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+  #weeklyReportArea {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* ⑤ 인쇄 색상 강제 유지 */
+  *, #tab11, #tab11 * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ⑥ CSS 변수 폴백 */
+  #tab11, #weeklyReportArea {
+    --white: #ffffff; --bg: #f3f4f6; --bg-dark: #1e293b;
+    --text: #1f2937; --text-light: #6b7280;
+    --border: #e5e7eb; --primary: #2563eb;
+    --card: #ffffff; --gray: #6b7280;
+  }
+
+  /* ⑦ 차트 크기 — Plotly SVG가 잘리지 않도록 */
+  #chartWeeklyDefect,
+  #chartMonthlyPerf { height: 280px !important; min-height: 280px !important; }
+  #chartWeeklyDefect .js-plotly-plot,
+  #chartMonthlyPerf .js-plotly-plot,
+  #chartWeeklyDefect .main-svg,
+  #chartMonthlyPerf .main-svg { width: 100% !important; }
+
+  /* ⑧ 스크롤 영역 해제 — 잘림 방지 */
+  div[style*="overflow-x:auto"],
+  div[style*="overflow-x: auto"] {
+    overflow: visible !important;
+    overflow-x: visible !important;
+  }
+
+  /* ⑨ 페이지 나눔 규칙 */
+  /* 차트 박스 */
+  #weeklyReportArea > div { page-break-inside: avoid; }
+  /* 차트 2열 그리드 */
+  #weeklyReportArea > div[style*="grid-template-columns:1fr 1fr"] { page-break-inside: avoid; }
+  /* 일별·품목별 테이블은 페이지 넘어가도 허용 */
+  table { page-break-inside: auto; border-collapse: collapse !important; width: 100% !important; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* ⑩ 폰트·여백 정리 */
+  #weeklyReportArea { font-size: 10pt !important; }
+  #weeklyReportArea h3 { font-size: 13pt !important; }
+  #weeklyReportArea table { font-size: 9pt !important; }
+  #weeklyReportArea td, #weeklyReportArea th { padding: 5px 8px !important; }
+
+  /* ⑪ 보고서 헤더 (파란 배너): 배경색 유지 */
+  #weeklyReportArea > div > div:first-child {
+    background: #2563eb !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ⑫ 링크/버튼 밑줄 제거 */
+  a { text-decoration: none !important; color: inherit !important; }
+  button { display: none !important; }
+}
 </style>
 </head>
 <body>
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- PDF 내보내기 탭 선택 모달 -->
+<div id="pdfExportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px 28px 20px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#1e293b">📄 PDF 내보내기</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:3px">내보낼 탭을 선택하세요</div>
+      </div>
+      <button onclick="$('pdfExportModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b7280;line-height:1">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button onclick="document.querySelectorAll('#pdfTabList input').forEach(c=>c.checked=true)" style="font-size:12px;padding:4px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;cursor:pointer">전체 선택</button>
+      <button onclick="document.querySelectorAll('#pdfTabList input').forEach(c=>c.checked=false)" style="font-size:12px;padding:4px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;cursor:pointer">전체 해제</button>
+    </div>
+    <div id="pdfTabList" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:20px"></div>
+    <div id="pdfExportProgress" style="display:none;margin-bottom:14px">
+      <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
+        <div id="pdfProgressBar" style="height:100%;background:#2563eb;width:0%;transition:width .3s;border-radius:3px"></div>
+      </div>
+      <div id="pdfProgressText" style="font-size:12px;color:#6b7280;margin-top:6px;text-align:center"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="$('pdfExportModal').style.display='none'" style="padding:9px 18px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;cursor:pointer;font-size:14px">취소</button>
+      <button id="btnStartPdfExport" onclick="startPdfExport()" style="padding:9px 22px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px;font-weight:700">📥 내보내기</button>
+    </div>
+  </div>
+</div>
 
 <!-- 햄버거 토글 -->
 <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기">&#9776;</button>
@@ -1009,13 +1174,6 @@ body.dark .item-filter-actions button { background:var(--card-dark); border-colo
     <label style="margin-top:10px">품목 선택</label>
     <div id="itemFilterWrap"></div>
 
-    <label style="margin-top:10px">불량률 임계치</label>
-    <div class="slider-wrap">
-      <input type="range" id="filterThreshold" min="0" max="30" step="0.1" value="5">
-      <input type="number" class="val-input" id="thresholdInput" min="0" max="30" step="0.1" value="5.0">
-      <span style="font-weight:700;color:var(--danger);font-size:14px">%</span>
-    </div>
-
     <label style="margin-top:10px">🎯 목표 불량률</label>
     <div class="slider-wrap">
       <input type="range" id="targetDefectRate" min="0.1" max="5" step="0.1" value="0.8">
@@ -1057,6 +1215,7 @@ body.dark .item-filter-actions button { background:var(--card-dark); border-colo
       <button class="tab-btn" data-tab="tab7">기간 비교</button>
       <button class="tab-btn" data-tab="tab8">품목 심층분석</button>
       <button class="tab-btn" data-tab="tab9">AI 품질진단</button>
+      <button class="tab-btn" data-tab="tab11">주간 보고</button>
     </div>
     <!-- 모바일 탭 그리드 -->
     <div class="tabs-mobile-grid" id="tabsMobile">
@@ -1069,6 +1228,7 @@ body.dark .item-filter-actions button { background:var(--card-dark); border-colo
       <button class="tab-m-btn" data-tab="tab7">🔄 기간비교</button>
       <button class="tab-m-btn" data-tab="tab8">🔍 심층분석</button>
       <button class="tab-m-btn" data-tab="tab9">🤖 AI진단</button>
+      <button class="tab-m-btn" data-tab="tab11">📋 주간보고</button>
     </div>
 
     <div id="tab1" class="tab-content active"></div>
@@ -1080,6 +1240,7 @@ body.dark .item-filter-actions button { background:var(--card-dark); border-colo
     <div id="tab7" class="tab-content"></div>
     <div id="tab8" class="tab-content"></div>
     <div id="tab9" class="tab-content"></div>
+    <div id="tab11" class="tab-content"></div>
   </div>
 </div>
 
@@ -1285,10 +1446,11 @@ function dateKRMonth(isoStr) {
   return parts[0] + '년 ' + Number(parts[1]) + '월';
 }
 function weekLabel(isoStr) {
-  const d = new Date(isoStr);
-  const jan1 = new Date(d.getFullYear(), 0, 1);
-  const wk = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-  return d.getFullYear() + '년 ' + wk + '주차';
+  const d = new Date(isoStr + 'T00:00:00');
+  const dow = (d.getDay() + 6) % 7; // 0=월 ~ 6=일
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - dow); // 해당 주 월요일
+  return mon.getFullYear() + '년 ' + (mon.getMonth()+1) + '/' + mon.getDate() + ' 주';
 }
 
 function toDate(v) {
@@ -1788,7 +1950,14 @@ function chartDailyTrend(byDate, el) {
     text: byDate.map(r => pct(r.불량률*100)), textposition:'top center',
     textfont:{size: mb ? 8 : 10, color:'#DC2626'}, yaxis:'y2'
   };
-  Plotly.newPlot(el, [trace1, trace2], {
+  const traceTarget = {
+    x: [dates[0], dates[dates.length-1]],
+    y: [targetDefectRate, targetDefectRate],
+    type:'scatter', mode:'lines',
+    name:'목표 불량률(' + targetDefectRate.toFixed(1) + '%)',
+    line:{color:'#16A34A', width:1.5, dash:'dash'}, yaxis:'y2'
+  };
+  Plotly.newPlot(el, [trace1, trace2, traceTarget], {
     title: mb ? '' : '일자별 생산수량 및 불량률 추이',
     yaxis:{title: mb ? '' : '생산수량'},
     yaxis2:{title: mb ? '' : '불량률 (%)', overlaying:'y', side:'right'},
@@ -2421,15 +2590,6 @@ function setupFilters() {
   $('filterArea').style.display = '';
 }
 
-// 불량률 임계치: 슬라이더 ↔ 입력 필드 양방향 동기화
-$('filterThreshold').addEventListener('input', e => {
-  $('thresholdInput').value = Number(e.target.value).toFixed(1);
-});
-$('thresholdInput').addEventListener('input', e => {
-  let val = Number(e.target.value);
-  if (val < 0) val = 0; if (val > 30) val = 30;
-  $('filterThreshold').value = val;
-});
 // 목표 불량률: 슬라이더 ↔ 입력 필드 양방향 동기화
 $('targetDefectRate').value = targetDefectRate;
 $('targetDefectInput').value = targetDefectRate.toFixed(1);
@@ -2452,9 +2612,19 @@ $('btnApplyFilter').addEventListener('click', () => {
 });
 
 function applyFilterAndRender() {
+  // 원본 데이터가 없는 경우 (localStorage 용량 초과로 미저장 등)
+  if (!cleanedData || !cleanedData.length) {
+    showToast('원본 데이터가 없습니다. 엑셀 파일을 다시 업로드해 주세요.', 'warn', 5000);
+    return;
+  }
+
   const start = $('filterStart').value;
   const end = $('filterEnd').value;
-  const threshold = Number($('filterThreshold').value);
+
+  if (!start || !end) {
+    showToast('시작일과 종료일을 설정해 주세요.', 'warn', 3000);
+    return;
+  }
 
   // 체크박스에서 선택된 품목
   const checkedItems = Array.from(document.querySelectorAll('.item-filter-chk:checked')).map(c => c.value);
@@ -2468,7 +2638,7 @@ function applyFilterAndRender() {
   }
 
   if (!filtered.length) {
-    showToast('필터 조건에 맞는 데이터가 없습니다.', 'warn', 4000);
+    showToast('선택한 기간에 해당하는 데이터가 없습니다. 날짜 범위를 확인해 주세요.', 'warn', 4000);
     return;
   }
 
@@ -2476,16 +2646,16 @@ function applyFilterAndRender() {
   const byDate = aggByDate(filtered);
   const byItem = aggByItem(filtered);
   const totals = aggDefectTotals(filtered);
-  const alerts = byItem.filter(r => r.불량률 > threshold/100)
+  const alerts = byItem.filter(r => r.불량률 > targetDefectRate/100)
     .sort((a,b) => b.불량률 - a.불량률);
 
-  renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtered);
+  renderDashboard(kpi, byDate, byItem, totals, alerts, filtered);
 
   // localStorage에 마지막 분석 결과 저장 (filtered 원본 포함)
   try {
     const saveData = {
       timestamp: new Date().toISOString(),
-      kpi, byDate, byItem, totals, alerts, threshold,
+      kpi, byDate, byItem, totals, alerts,
       filtered: filtered,
       defectColsSaved: defectCols,
       filterStart: start, filterEnd: end
@@ -2496,7 +2666,7 @@ function applyFilterAndRender() {
     try {
       const saveData = {
         timestamp: new Date().toISOString(),
-        kpi, byDate, byItem, totals, alerts, threshold,
+        kpi, byDate, byItem, totals, alerts,
         defectColsSaved: defectCols,
         filterStart: start, filterEnd: end
       };
@@ -2520,16 +2690,66 @@ function movingAvg(arr, key, window) {
 function chartTrendMA(byDate, el) {
   const dates = byDate.map(r => dateKR(r.생산일자));
   const rates = byDate.map(r => r.불량률 * 100);
-  const ma7 = movingAvg(byDate, '불량률', 7).map(v => v * 100);
+  const ma7  = movingAvg(byDate, '불량률',  7).map(v => v * 100);
   const ma14 = movingAvg(byDate, '불량률', 14).map(v => v * 100);
-  const mb = isMobile();
+  const mb   = isMobile();
+  const tgt  = targetDefectRate;
+
+  // 초과/달성 마커 색상 — 날짜 순서는 dates 배열 그대로 유지
+  const dotColors = rates.map(v => v > tgt ? '#DC2626' : '#94A3B8');
+  const dotSizes  = rates.map(v => v > tgt ? (mb ? 8 : 11) : (mb ? 4 : 6));
+  const dotBorder = rates.map(v => v > tgt ? '#fff' : 'rgba(0,0,0,0)');
+  const dotText   = rates.map(v => v > tgt ? v.toFixed(2) + '%' : '');
+
+  // Y축 zoom: 데이터 범위 ± 여백
+  const rateMin = Math.min(...rates, tgt);
+  const rateMax = Math.max(...rates, tgt);
+  const pad     = (rateMax - rateMin) * 0.4 || 0.2;
+  const yMin    = Math.max(0, rateMin - pad);
+  const yMax    = rateMax + pad * 2.5;   // 라벨 공간 확보
+
   Plotly.newPlot(el, [
-    { x: dates, y: rates, type:'scatter', mode:'markers', name:'일별 불량률', marker:{color:'#94A3B8',size:mb?4:6} },
-    { x: dates, y: ma7, type:'scatter', mode:'lines', name:'7일 이동평균', line:{color:'#2563EB',width:2.5} },
-    { x: dates, y: ma14, type:'scatter', mode:'lines', name:'14일 이동평균', line:{color:'#DC2626',width:2,dash:'dash'} }
+    // ① 일별 불량률 (달성=회색, 초과=빨강+라벨) — dates 순서 유지
+    { x: dates, y: rates, type:'scatter', mode:'markers+text', name:'일별 불량률',
+      marker: { color: dotColors, size: dotSizes,
+                line: { color: dotBorder, width: 2 } },
+      text: dotText, textposition:'top center',
+      textfont: { size: 11, color:'#DC2626' },
+      cliponaxis: false,
+      hovertemplate: '%{x}<br>%{y:.2f}%<extra></extra>' },
+    // ② 목표 초과 범례 전용 (실제 점 없음)
+    { x: [null], y: [null], type:'scatter', mode:'markers', name:'목표 초과',
+      marker: { color:'#DC2626', size: mb?8:11,
+                line: { color:'#fff', width: 2 } },
+      showlegend: true },
+    // ③ 7일 이동평균
+    { x: dates, y: ma7,  type:'scatter', mode:'lines', name:'7일 이동평균',
+      line: { color:'#2563EB', width: 2.5 } },
+    // ④ 14일 이동평균
+    { x: dates, y: ma14, type:'scatter', mode:'lines', name:'14일 이동평균',
+      line: { color:'#F97316', width: 2, dash:'dash' } },
+    // ⑤ 목표 불량률 선
+    { x: [dates[0], dates[dates.length-1]], y: [tgt, tgt],
+      type:'scatter', mode:'lines', name:'목표 불량률(' + tgt.toFixed(1) + '%)',
+      line: { color:'#16A34A', width: 2, dash:'dot' },
+      hoverinfo: 'skip' },
   ], {
-    yaxis:{title: mb ? '' : '불량률 (%)'}, legend:{orientation:'h',y:mb?1.18:1.12,font:{size:mb?10:12}},
-    height: chartHeight(400,300), margin: mb?{t:30,b:40,l:40,r:20}:{t:30,b:50,l:60,r:40}
+    xaxis: { categoryorder:'array', categoryarray: dates,   // 날짜 순서 고정
+             tickfont: { size: mb?9:11 } },
+    yaxis: { title: mb ? '' : '불량률 (%)', range: [yMin, yMax] },
+    legend: { orientation:'h', y: mb?1.18:1.12, font:{size:mb?10:12} },
+    height: chartHeight(400, 300),
+    margin: mb ? {t:30,b:40,l:40,r:20} : {t:50,b:50,l:60,r:40},
+    // 목표 초과 구간 배경 음영
+    shapes: [{
+      type:'rect', xref:'paper', yref:'y',
+      x0:0, x1:1, y0:tgt, y1: yMax,
+      fillcolor:'rgba(220,38,38,0.06)', line:{ width:0 }, layer:'below'
+    }, {
+      type:'rect', xref:'paper', yref:'y',
+      x0:0, x1:1, y0:yMin, y1: tgt,
+      fillcolor:'rgba(22,163,74,0.06)', line:{ width:0 }, layer:'below'
+    }]
   }, getPlotCfg());
 }
 
@@ -2711,13 +2931,17 @@ function chartYieldTrend(byDate, el) {
   const yields=byDate.map(r=>r.생산수량?r.양품수량/r.생산수량*100:0);
   const yieldMin = yields.length ? Math.min(...yields) : 0;
   const mb=isMobile();
+  const targetYield = 100 - targetDefectRate;
   Plotly.newPlot(el,[
     {x:dates,y:yields,type:'scatter',mode:'lines+markers',name:'일별 수율',
       line:{color:'#16A34A',width:2},marker:{size:mb?4:6}},
     {x:[dates[0],dates[dates.length-1]],y:[98,98],type:'scatter',mode:'lines',name:'목표 98%',
-      line:{color:'#DC2626',width:2,dash:'dash'}}
+      line:{color:'#DC2626',width:2,dash:'dash'}},
+    {x:[dates[0],dates[dates.length-1]],y:[targetYield,targetYield],type:'scatter',mode:'lines',
+      name:'목표 수율('+targetYield.toFixed(1)+'%)',
+      line:{color:'#16A34A',width:1.5,dash:'dash'}}
   ],{
-    title:mb?'':'일자별 수율 추이',yaxis:{title:mb?'':'수율 (%)',range:[Math.max(0,yieldMin-3),101]},
+    title:mb?'':'일자별 수율 추이',yaxis:{title:mb?'':'수율 (%)',range:[Math.max(0,Math.min(yieldMin,targetYield)-3),101]},
     legend:{orientation:'h',y:mb?1.15:1.12,font:{size:mb?10:12}},
     height:chartHeight(380,280),margin:mb?{t:30,b:40,l:40,r:20}:{t:60,b:50,l:60,r:40}
   },getPlotCfg());
@@ -3237,10 +3461,20 @@ function makeTableEnhanced(headers, rows, id) {
    ================================================================ */
 
 /* 종합 품질 점수 (0~100, 감점 방식) */
-function calcQualityScore(kpi, trends, anomalies, riskScores, st) {
+function calcQualityScore(kpi, trends, anomalies, riskScores, st, targetRate) {
+  if (targetRate === undefined) targetRate = targetDefectRate;
   let score = 100;
-  // 1) 불량률 감점 (max -40, 자동차부품 기준: 1.5%가 한계선)
-  score -= Math.min(40, kpi.불량률 / 1.5 * 40);
+  // 1) 불량률 감점 - 목표 불량률 기준 차등 적용 (max -40)
+  const dr = kpi.불량률;
+  if (dr <= targetRate) {
+    // 목표 달성: 목표 대비 사용 비율에 따라 0~-10점
+    score -= Math.round(dr / Math.max(targetRate, 0.01) * 10);
+  } else {
+    // 목표 초과: 기본 -10점 + 초과 비율 추가 감점 (max -40)
+    const hardCap = Math.max(targetRate * 3, 3.0);
+    const excessRatio = (dr - targetRate) / Math.max(hardCap - targetRate, 0.01);
+    score -= Math.min(40, 10 + Math.round(excessRatio * 30));
+  }
   // 2) 위험 품목 감점 (max -20)
   score -= Math.min(20, riskScores.filter(r => r.grade === '위험').length * 7);
   // 3) 이상 징후 감점 (max -15)
@@ -3256,13 +3490,15 @@ function calcQualityScore(kpi, trends, anomalies, riskScores, st) {
   score = Math.max(0, Math.min(100, Math.round(score)));
   let letterGrade = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 45 ? 'D' : 'F';
 
-  // 불량률 기반 등급 상한 적용 (자동차 부품 기준)
-  // 0.0~0.3%: A, 0.3~0.7%: B, 0.7~1.5%: C, 1.5~3.0%: D, 3.0%+: F
-  const dr = kpi.불량률;
-  if      (dr >= 3.0)                                letterGrade = 'F';
-  else if (dr >= 1.5 && 'ABC'.includes(letterGrade)) letterGrade = 'D';
-  else if (dr >= 0.7 && 'AB'.includes(letterGrade))  letterGrade = 'C';
-  else if (dr >= 0.3 && letterGrade === 'A')         letterGrade = 'B';
+  // 불량률 기반 등급 상한 - 목표 불량률 기준 비율로 계산
+  const capF = Math.max(targetRate * 3, 3.0);
+  const capD = Math.max(targetRate * 1.5, 1.5);
+  const capC = Math.max(targetRate, 0.7);
+  const capB = Math.max(targetRate * 0.5, 0.3);
+  if      (dr >= capF)                               letterGrade = 'F';
+  else if (dr >= capD && 'ABC'.includes(letterGrade)) letterGrade = 'D';
+  else if (dr >= capC && 'AB'.includes(letterGrade))  letterGrade = 'C';
+  else if (dr >= capB && letterGrade === 'A')         letterGrade = 'B';
 
   const verdicts = {
     A: '품질이 매우 우수합니다. 현재 상태를 유지하세요.',
@@ -4003,7 +4239,7 @@ function renderAIDiagnosis(kpi, byDate, byItem, filtered) {
   const mb = isMobile();
 
   // 종합 품질 점수
-  const qs = calcQualityScore(kpi, trends, anomalies, riskScores, st);
+  const qs = calcQualityScore(kpi, trends, anomalies, riskScores, st, targetDefectRate);
 
   let html = '';
 
@@ -4306,9 +4542,1126 @@ function renderAIDiagnosis(kpi, byDate, byItem, filtered) {
 /* ================================================================
    Phase 3: 다크모드
    ================================================================ */
+/* ================================================================
+   주간 보고 함수
+   ================================================================ */
+
+/* 공통: 양품률 → 시그마 수준 */
+function calcSigmaLevel(yieldPct) {
+  const tbl = [[99.99966,6],[99.9977,5.5],[99.977,5],[99.87,4.5],[99.38,4],[97.73,3.5],[95.45,3],[93.32,2.5],[84.13,2],[69.15,1.5],[50,1]];
+  for (const [y,s] of tbl) { if (yieldPct >= y) return s; }
+  return 1;
+}
+
+/* ① 시그마 수준 추이 차트 */
+function chartSigmaTrend(byDate, el) {
+  if (!byDate || !byDate.length) { el.innerHTML='<p style="color:var(--text-light);padding:20px">데이터가 없습니다.</p>'; return; }
+  const dates = byDate.map(r => dateKR(r.생산일자));
+  const sigmas = byDate.map(r => {
+    const yld = r.생산수량 > 0 ? r.양품수량 / r.생산수량 * 100 : 100;
+    return calcSigmaLevel(yld);
+  });
+  const mb = isMobile();
+  const sigmaColor = s => s >= 5 ? '#16A34A' : s >= 4 ? '#2563EB' : s >= 3 ? '#F59E0B' : '#DC2626';
+  const refLines = [
+    {y:6, name:'6σ (3.4 PPM)', color:'#16A34A'},
+    {y:5, name:'5σ (233 PPM)', color:'#2563EB'},
+    {y:4, name:'4σ (6,210 PPM)', color:'#F59E0B'},
+    {y:3, name:'3σ (66,807 PPM)', color:'#DC2626'},
+  ];
+  Plotly.newPlot(el, [
+    { x:dates, y:sigmas, type:'scatter', mode:'lines+markers', name:'일별 시그마 수준',
+      line:{color:'#7C3AED',width:2.5},
+      marker:{size:mb?5:8, color:sigmas.map(sigmaColor)} },
+    ...refLines.map(r => ({
+      x:[dates[0],dates[dates.length-1]], y:[r.y,r.y],
+      type:'scatter', mode:'lines', name:r.name,
+      line:{color:r.color, width:1.5, dash:'dot'}, showlegend:true
+    }))
+  ], {
+    yaxis:{title:mb?'':'시그마 수준(σ)', range:[1.5,6.5], dtick:0.5},
+    legend:{orientation:'h', y:mb?1.3:1.15, font:{size:mb?9:11}},
+    height:chartHeight(400,300),
+    margin:mb?{t:30,b:40,l:40,r:20}:{t:30,b:50,l:60,r:40}
+  }, getPlotCfg());
+}
+
+/* ② PPM 기준 파레토 차트 */
+function chartPPMPareto(byItem, el) {
+  const data = [...byItem].filter(r => r.생산수량 >= 50 && r.PPM > 0)
+    .sort((a,b) => b.PPM - a.PPM).slice(0, 20);
+  if (!data.length) { el.innerHTML='<p style="color:var(--text-light);padding:20px">데이터 부족 (생산 50개 이상 품목 없음)</p>'; return; }
+  const totalPPM = data.reduce((s,r) => s + r.PPM, 0);
+  let cum = 0;
+  const cumPct = data.map(r => { cum += r.PPM; return cum / totalPPM * 100; });
+  const mb = isMobile();
+  const tgtPPM = targetDefectRate / 100 * 1000000;
+  const names = data.map(r => r.품명.length > 12 ? r.품명.slice(0,12)+'...' : r.품명);
+  Plotly.newPlot(el, [
+    { x:names, y:data.map(r=>Math.round(r.PPM)), type:'bar', name:'PPM',
+      marker:{color:data.map(r => r.PPM > tgtPPM*2 ? '#DC2626' : r.PPM > tgtPPM ? '#F59E0B' : '#2563EB'), opacity:.85},
+      text:data.map(r=>fmt(Math.round(r.PPM))), textposition:'outside', textfont:{size:mb?9:11} },
+    { x:names, y:cumPct, type:'scatter', mode:'lines+markers'+(mb?'':'+text'), name:'누적 비율',
+      marker:{size:mb?5:7,symbol:'diamond'}, line:{color:'#DC2626',width:2.5},
+      text:cumPct.map(v=>pct(v,1)), textposition:'top center',
+      textfont:{size:mb?8:10,color:'#DC2626'}, yaxis:'y2' }
+  ], {
+    title:mb?'':'품목별 PPM 파레토 (상위 20개)',
+    yaxis:{title:mb?'':'PPM'},
+    yaxis2:{title:mb?'':'누적 비율(%)', overlaying:'y', side:'right', range:[0,110]},
+    shapes:[{type:'line',yref:'y2',y0:80,y1:80,x0:0,x1:1,xref:'paper',line:{dash:'dash',color:'#F59E0B',width:1.5}}],
+    legend:{orientation:'h',y:mb?1.18:1.12,font:{size:mb?9:12}},
+    height:chartHeight(420,320),
+    margin:mb?{t:30,b:70,l:40,r:40}:{t:60,b:90,l:60,r:60}
+  }, getPlotCfg());
+}
+
+/* ③ 월별 PPM 목표 달성 차트 */
+function chartMonthlyPPM(byMonth, el) {
+  if (!byMonth || !byMonth.length) { el.innerHTML='<p style="color:var(--text-light);padding:20px">월별 데이터가 부족합니다 (2개월 이상 필요).</p>'; return; }
+  const tgtPPM = Math.round(targetDefectRate / 100 * 1000000);
+  const labels = byMonth.map(r => dateKRMonth(r.생산일자));
+  const ppms   = byMonth.map(r => Math.round(r.PPM));
+  let cp = 0, cb = 0;
+  const cumPPMs = byMonth.map(r => { cp += r.생산수량; cb += r.불량수량; return cp > 0 ? Math.round(cb/cp*1000000) : 0; });
+  const mb = isMobile();
+  Plotly.newPlot(el, [
+    { x:labels, y:ppms, type:'bar', name:'월별 PPM',
+      marker:{color:ppms.map(v => v > tgtPPM ? '#DC2626' : '#2563EB'), opacity:.8},
+      text:ppms.map(v=>fmt(v)), textposition:'outside', textfont:{size:mb?9:11} },
+    { x:labels, y:cumPPMs, type:'scatter', mode:'lines+markers', name:'누적 PPM',
+      line:{color:'#7C3AED',width:2.5}, marker:{size:mb?6:8} },
+    { x:[labels[0],labels[labels.length-1]], y:[tgtPPM,tgtPPM], type:'scatter', mode:'lines',
+      name:'목표 PPM ('+fmt(tgtPPM)+')',
+      line:{color:'#16A34A',width:2,dash:'dash'} }
+  ], {
+    title:mb?'':'월별 PPM 현황 및 누적 추이',
+    yaxis:{title:mb?'':'PPM'},
+    legend:{orientation:'h',y:mb?1.18:1.12,font:{size:mb?9:12}},
+    height:chartHeight(380,280),
+    margin:mb?{t:30,b:40,l:50,r:20}:{t:30,b:50,l:70,r:40}
+  }, getPlotCfg());
+}
+
+/* ④ 주간 경영 보고서 HTML 생성 */
+function generateWeeklyReport(kpi, byDate, byItem, byWeek) {
+  const now = new Date();
+  const todayLabel = now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
+  const tgtPPM   = Math.round(targetDefectRate / 100 * 1000000);
+  const tgtRate  = targetDefectRate;
+  const curRate  = kpi.불량률;   // calcKPI가 이미 ×100한 퍼센트값
+  const curPPM   = Math.round(kpi.PPM || 0);
+  const yldPct   = kpi.총생산수량 > 0 ? kpi.총양품수량 / kpi.총생산수량 * 100 : 100;
+  const sigma    = calcSigmaLevel(yldPct);
+  const isOk     = curRate <= tgtRate;
+
+  // 최근 주 / 전주
+  const wCur  = byWeek.length >= 1 ? byWeek[byWeek.length-1] : null;
+  const wPrev = byWeek.length >= 2 ? byWeek[byWeek.length-2] : null;
+  const wChg  = (wCur && wPrev) ? (wCur.불량률 - wPrev.불량률) * 100 : null;
+
+  // 위험 품목 TOP3
+  const top3 = [...byItem].filter(r => r.생산수량 >= 50)
+    .sort((a,b) => b.불량률 - a.불량률).slice(0, 3);
+
+  // 목표 초과 일수
+  const overDays = byDate.filter(r => r.불량률 * 100 > tgtRate).length;
+
+  // ── 전 탭 분석 데이터 통합 계산 ──
+  const spc = calcSPCSummary(byDate);
+  const yld = calcYieldSummary(byDate, byItem);
+  const _fl = window._rawFiltered || [];
+  const _tr = typeof analyzeTrends      === 'function' ? analyzeTrends(byDate, _fl)                              : { direction: '안정', weekChange: 0, consecutiveWorsen: 0, consecutiveImprove: 0 };
+  const _an = typeof detectAnomalies    === 'function' ? detectAnomalies(byDate)                                  : [];
+  const _rs = typeof calcItemRiskScores === 'function' ? calcItemRiskScores(byItem, _fl, aiRiskSettings)          : [];
+  const aiScore = (typeof calcQualityScore === 'function' && byDate.length)
+    ? calcQualityScore(kpi, _tr, _an, _rs, { yieldRate: yldPct }, targetDefectRate)
+    : null;
+  const issueTimeline = buildIssueTimeline(byDate, tgtRate);
+  const actionItems   = buildActionItems(kpi, byDate, byItem, spc, yld, aiScore, byWeek, tgtRate);
+
+  // 요일별 패턴 분석
+  const dowMap = {};
+  byDate.forEach(r => {
+    const d = new Date(dateStr(r.생산일자)), dow = d.getDay();
+    if (!dowMap[dow]) dowMap[dow] = { sum: 0, cnt: 0 };
+    dowMap[dow].sum += r.불량률; dowMap[dow].cnt += 1;
+  });
+  const avgRateAll = byDate.length ? byDate.reduce((s, r) => s + r.불량률, 0) / byDate.length : 0;
+  const dowNames  = ['일', '월', '화', '수', '목', '금', '토'];
+  const highDows  = Object.entries(dowMap)
+    .filter(([, v]) => v.cnt >= 2 && (v.sum / v.cnt) > avgRateAll * 1.3)
+    .map(([d]) => dowNames[+d] + '요일');
+
+  // 핵심 메시지 생성
+  let headline, headlineColor;
+  if (isOk) {
+    headline = `불량률 ${curRate.toFixed(2)}%로 목표(${tgtRate.toFixed(1)}%)를 달성하고 있습니다.` +
+      (wChg !== null && wChg < -0.02 ? ` 전주 대비 ${Math.abs(wChg).toFixed(2)}%p 개선 중입니다.` : '');
+    headlineColor = '#16A34A';
+  } else {
+    const over = (curRate - tgtRate).toFixed(2);
+    headline = `불량률 ${curRate.toFixed(2)}%로 목표(${tgtRate.toFixed(1)}%) 대비 ${over}%p 초과 중입니다. 집중 관리가 필요합니다.`;
+    headlineColor = '#DC2626';
+  }
+
+  // 트렌드 방향
+  const trendLabel = wChg === null ? '데이터 부족' : wChg < -0.05 ? '개선' : wChg > 0.05 ? '악화' : '유지';
+  const trendColor = trendLabel === '개선' ? '#16A34A' : trendLabel === '악화' ? '#DC2626' : '#6B7280';
+  const trendArrow = trendLabel === '개선' ? '▼' : trendLabel === '악화' ? '▲' : '─';
+
+  // 기간 레이블
+  const periodLabel = byDate.length >= 2
+    ? dateKRFull(dateStr(byDate[0].생산일자)) + ' ~ ' + dateKRFull(dateStr(byDate[byDate.length-1].생산일자))
+    : '-';
+
+  // ──── 대표자 경영 브리핑 계산 ────
+  const overRatio   = byDate.length ? overDays / byDate.length : 0;
+  // 신호등: 목표 초과이면 적, 초과일 30%↑이면 황, 그 외 녹
+  const sigLight    = !isOk ? 'red' : overRatio > 0.3 ? 'yellow' : 'green';
+  const sigEmoji    = sigLight === 'green' ? '🟢' : sigLight === 'yellow' ? '🟡' : '🔴';
+  const sigLabel    = sigLight === 'green' ? '정상' : sigLight === 'yellow' ? '주의' : '위험';
+  const sigBg       = sigLight === 'green' ? '#F0FDF4' : sigLight === 'yellow' ? '#FEFCE8' : '#FFF1F2';
+  const sigBorder   = sigLight === 'green' ? '#86EFAC' : sigLight === 'yellow' ? '#FDE047' : '#FECACA';
+  const sigColor    = sigLight === 'green' ? '#15803D' : sigLight === 'yellow' ? '#854D0E' : '#991B1B';
+
+  // 핵심 키워드 태그
+  const kwTags = [];
+  if (isOk) kwTags.push({t:'✅ 목표 달성',          c:'#15803D', bg:'#D1FAE5'});
+  else       kwTags.push({t:'⚠️ 목표 초과',           c:'#991B1B', bg:'#FEE2E2'});
+  if      (trendLabel === '개선') kwTags.push({t:'📉 불량 개선세', c:'#1D4ED8', bg:'#DBEAFE'});
+  else if (trendLabel === '악화') kwTags.push({t:'📈 불량 악화세', c:'#991B1B', bg:'#FEE2E2'});
+  if (overDays === 0)        kwTags.push({t:'🎯 전일 달성',        c:'#15803D', bg:'#D1FAE5'});
+  else if (overRatio > 0.5)  kwTags.push({t:'🚨 과반 초과',        c:'#991B1B', bg:'#FEE2E2'});
+  const dangerItems = [...byItem].filter(r => r.생산수량 >= 50 && r.불량률 * 100 > tgtRate * 2);
+  if (dangerItems.length) kwTags.push({t:`🔴 위험품목 ${dangerItems.length}개`, c:'#991B1B', bg:'#FEE2E2'});
+  kwTags.push(sigma >= 5
+    ? {t:`${sigma.toFixed(1)}σ 우수`, c:'#15803D', bg:'#D1FAE5'}
+    : sigma >= 4
+      ? {t:`${sigma.toFixed(1)}σ 양호`, c:'#1D4ED8', bg:'#DBEAFE'}
+      : sigma >= 3
+        ? {t:`${sigma.toFixed(1)}σ 주의`, c:'#854D0E', bg:'#FEF9C3'}
+        : {t:`${sigma.toFixed(1)}σ 위험`, c:'#991B1B', bg:'#FEE2E2'});
+  // 추가 태그: SPC / 수율 / AI / 요일패턴 / 연속달성
+  if      (spc.outCount >= 3) kwTags.push({ t:'🏭 공정불안정',                   c:'#991B1B', bg:'#FEE2E2' });
+  else if (spc.outCount >= 1) kwTags.push({ t:`📈 SPC이탈 ${spc.outCount}건`,     c:'#854D0E', bg:'#FEF3C7' });
+  if (!yld.isOk)              kwTags.push({ t:'📉 수율저하',                       c:'#7C3AED', bg:'#EDE9FE' });
+  if (aiScore) {
+    const aOk = aiScore.letterGrade === 'A' || aiScore.letterGrade === 'B';
+    kwTags.push({ t:`🤖 AI ${aiScore.letterGrade}등급 ${aiScore.score}점`, c: aOk ? '#15803D' : '#991B1B', bg: aOk ? '#D1FAE5' : '#FEE2E2' });
+  }
+  if (highDows.length) kwTags.push({ t:`📆 ${highDows.join('·')} 불량집중`, c:'#854D0E', bg:'#FEF3C7' });
+  const consecOk = byDate.length >= 3 && byDate.slice(-3).every(r => r.불량률 * 100 <= tgtRate);
+  if (consecOk) kwTags.push({ t:'✨ 연속 달성', c:'#15803D', bg:'#D1FAE5' });
+
+  // 경영 인사이트 불릿 (3~5개, 자동 생성)
+  const execInsights = [];
+  if (isOk) {
+    execInsights.push(`불량률 <b>${curRate.toFixed(2)}%</b>로 목표 대비 <b style="color:#15803D">${(tgtRate - curRate).toFixed(2)}%p 여유</b> — 현 수준 유지 권고`);
+  } else {
+    execInsights.push(`불량률 <b style="color:#DC2626">${curRate.toFixed(2)}%</b>로 목표 대비 <b style="color:#DC2626">+${(curRate - tgtRate).toFixed(2)}%p 초과</b> — 즉각 개선 조치 필요`);
+  }
+  if (wChg !== null) {
+    if (wChg < -0.05)
+      execInsights.push(`전주 대비 <b style="color:#15803D">${Math.abs(wChg).toFixed(2)}%p 개선</b> — 개선 활동 지속 효과 확인됨`);
+    else if (wChg > 0.05)
+      execInsights.push(`전주 대비 <b style="color:#DC2626">+${wChg.toFixed(2)}%p 악화</b> — 이번 주 변동 원인 긴급 점검 필요`);
+    else
+      execInsights.push(`전주 대비 ±${Math.abs(wChg).toFixed(2)}%p 유사 수준 <b>유지 중</b> — 추이 지속 관찰`);
+  }
+  if (overDays === 0) {
+    execInsights.push(`분석 기간 <b style="color:#15803D">전 ${byDate.length}일 목표 달성</b> — 공정 안정 상태`);
+  } else if (overRatio > 0.5) {
+    execInsights.push(`${byDate.length}일 중 <b style="color:#DC2626">${overDays}일(${Math.round(overRatio * 100)}%) 목표 초과</b> — 구조적 공정 불안정, 근본 원인 분석 필요`);
+  } else {
+    execInsights.push(`${byDate.length}일 중 <b style="color:#D97706">${overDays}일 목표 초과</b> — 해당 일자 특이 요인 파악 후 재발 방지 조치 필요`);
+  }
+  if (top3.length) {
+    const w = top3[0];
+    execInsights.push(`최고 위험 품목 <b>「${w.품명}」</b> — 불량률 <b style="color:#DC2626">${pct(w.불량률 * 100)}</b>, 즉시 공정 점검 및 집중 관리 대상`);
+  }
+  if (sigma < 4) {
+    execInsights.push(`시그마 수준 <b style="color:${sigma < 3 ? '#DC2626' : '#D97706'}">${sigma.toFixed(1)}σ</b> — ${sigma < 3 ? '긴급 공정 표준화 및 설비 점검 필요' : '품질 개선 활동 강화 권고'}`);
+  }
+  if (spc.outCount > 0) {
+    execInsights.push(`SPC 관리한계 이탈 <b style="color:${spc.outCount >= 3 ? '#DC2626' : '#D97706'}">${spc.outCount}건</b> 감지 — ${spc.outCount >= 3 ? '공정 불안정, 즉각 원인 조사 필요' : '이탈 일자 특이 요인 파악 권고'}`);
+  }
+  if (!yld.isOk) {
+    execInsights.push(`수율 <b style="color:#7C3AED">${yld.yieldPct.toFixed(1)}%</b> — 목표(98%) 미달, 수율 하위 품목 공정 조건 점검 필요`);
+  }
+  if (aiScore && aiScore.score < 75) {
+    execInsights.push(`AI 종합 품질점수 <b style="color:${aiScore.color}">${aiScore.score}점 · ${aiScore.letterGrade}등급</b> — ${aiScore.verdict}`);
+  }
+
+  const wRow = (label, cur, prev, target, goodFn) => {
+    const isGood = goodFn ? goodFn(cur) : true;
+    const chg = prev !== null ? cur - prev : null;
+    const chgStr = chg !== null ? (chg > 0 ? '+' : '') + chg.toFixed(chg > 100 ? 0 : 2) : '-';
+    const chgColor = chg === null ? '#6B7280' : goodFn(cur - chg) !== goodFn(cur) ? (isGood ? '#16A34A' : '#DC2626') : '#6B7280';
+    return `<tr style="background:${isGood?'transparent':'#FEF2F2'}">
+      <td style="padding:8px 12px;font-weight:600;color:var(--text)">${label}</td>
+      <td style="padding:8px 12px;font-weight:700;color:${isGood?'#16A34A':'#DC2626'};text-align:center">
+        ${typeof cur==='number'?cur.toFixed(cur>100?0:2):cur}
+        ${isGood ? '' : '<span style="font-size:10px;background:#FEE2E2;color:#DC2626;border-radius:4px;padding:1px 5px;margin-left:4px;font-weight:700">▲ 초과</span>'}
+      </td>
+      <td style="padding:8px 12px;text-align:center;color:var(--text-light)">${prev !== null ? (typeof prev==='number'?prev.toFixed(prev>100?0:2):prev) : '-'}</td>
+      <td style="padding:8px 12px;text-align:center;color:${chgColor}">${chgStr}</td>
+      <td style="padding:8px 12px;text-align:center;font-weight:600;color:#16A34A">${target}</td>
+    </tr>`;
+  };
+
+  return `
+  <div style="width:100%;font-family:inherit">
+    <!-- 헤더 -->
+    <div style="background:var(--primary);color:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:11px;opacity:.8;margin-bottom:4px">남도금속 품질경영</div>
+          <div style="font-size:20px;font-weight:800">주간 품질 경영 보고서</div>
+          <div style="font-size:12px;opacity:.85;margin-top:4px">분석 기간: ${periodLabel}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;opacity:.8">작성일</div>
+          <div style="font-size:14px;font-weight:700">${todayLabel}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 대표자 경영 브리핑 -->
+    <div style="background:${sigBg};border:1.5px solid ${sigBorder};border-radius:12px;padding:18px 22px;margin-bottom:16px">
+      <!-- 타이틀 행 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:26px;line-height:1">${sigEmoji}</span>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:${sigColor};letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px">대표자 경영 브리핑</div>
+          <div style="font-size:17px;font-weight:800;color:${sigColor}">종합 품질 상태 — ${sigLabel}</div>
+        </div>
+      </div>
+      <!-- 키워드 태그 -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+        ${kwTags.map(k => `<span style="background:${k.bg};color:${k.c};font-size:12px;font-weight:700;padding:5px 13px;border-radius:20px;border:1px solid ${k.c}40;white-space:nowrap">${k.t}</span>`).join('')}
+      </div>
+      <!-- 인사이트 -->
+      <div style="background:rgba(255,255,255,0.75);border-radius:8px;padding:14px 18px">
+        <div style="font-size:11px;font-weight:700;color:${sigColor};letter-spacing:.04em;margin-bottom:10px">📋 핵심 인사이트</div>
+        <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px">
+          ${execInsights.map(i => `<li style="font-size:13px;color:#1F2937;line-height:1.6">${i}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+
+    <!-- ZONE B: 탭별 분석 요약 -->
+    ${(()=>{
+      const rows = [
+        {
+          icon:'📊', name:'전체 품질',
+          light: !isOk ? 'red' : overRatio > 0.3 ? 'yellow' : 'green',
+          summary: `불량률 ${curRate.toFixed(2)}% — 목표(${tgtRate.toFixed(1)}%) ${isOk ? '달성' : '초과'}`
+        },
+        {
+          icon:'📅', name:'일자별 분석',
+          light: overDays === 0 ? 'green' : overRatio >= 0.5 ? 'red' : overDays <= 2 ? 'yellow' : 'red',
+          summary: overDays === 0 ? `전 ${byDate.length}일 목표 달성 — 공정 안정` : `${byDate.length}일 중 ${overDays}일 초과 — ${overRatio >= 0.5 ? '과반 초과 주의' : '특이 요인 파악 필요'}`
+        },
+        {
+          icon:'📦', name:'품목별 분석',
+          light: dangerItems.length === 0 ? 'green' : dangerItems.length <= 2 ? 'yellow' : 'red',
+          summary: dangerItems.length === 0 ? '목표 2배 초과 위험품목 없음' : `위험품목 ${dangerItems.length}개 — ${dangerItems[0].품명} 등 즉시조치 필요`
+        },
+        {
+          icon:'📈', name:'SPC 관리도',
+          light: spc.outCount === 0 ? 'green' : spc.outCount < 3 ? 'yellow' : 'red',
+          summary: spc.outCount === 0 ? `공정 안정 — p̄ ${spc.pbarPct.toFixed(2)}%` : `UCL 이탈 ${spc.outCount}건 — ${spc.outCount >= 3 ? '공정 불안정' : '점검 필요'}`
+        },
+        {
+          icon:'✅', name:'수율 분석',
+          light: yld.isOk ? 'green' : yld.yieldPct >= 96 ? 'yellow' : 'red',
+          summary: `수율 ${yld.yieldPct.toFixed(1)}% — 목표(98%) ${yld.isOk ? '달성' : '미달'}`
+        },
+        {
+          icon:'🤖', name:'AI 품질진단',
+          light: !aiScore ? 'green' : aiScore.score >= 75 ? 'green' : aiScore.score >= 60 ? 'yellow' : 'red',
+          summary: aiScore ? `품질점수 ${aiScore.score}점 · ${aiScore.letterGrade}등급 — ${aiScore.verdict}` : '데이터 분석 중'
+        },
+      ];
+      const lightEmoji = { green:'🟢', yellow:'🟡', red:'🔴' };
+      const lightColor = { green:'#15803D', yellow:'#854D0E', red:'#991B1B' };
+      const lightBg    = { green:'#F0FDF4', yellow:'#FEFCE8', red:'#FFF1F2' };
+      return `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;page-break-inside:avoid">
+        <div style="padding:10px 16px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border);background:var(--bg)">
+          🗂️ 탭별 분석 요약
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--bg)">
+                <th style="padding:7px 14px;text-align:left;color:var(--text-light);font-weight:600;white-space:nowrap">분석 영역</th>
+                <th style="padding:7px 10px;text-align:center;color:var(--text-light);font-weight:600;width:52px">상태</th>
+                <th style="padding:7px 14px;text-align:left;color:var(--text-light);font-weight:600">핵심 요약</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `<tr style="background:${lightBg[row.light]};border-bottom:1px solid var(--border)">
+                <td style="padding:8px 14px;font-weight:700;color:${lightColor[row.light]};white-space:nowrap">${row.icon} ${row.name}</td>
+                <td style="padding:8px 10px;text-align:center;font-size:16px">${lightEmoji[row.light]}</td>
+                <td style="padding:8px 14px;color:var(--text);font-size:12px">${row.summary}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    })()}
+
+    <!-- 핵심 KPI 카드 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+      ${[
+        {label:'불량률', val:curRate.toFixed(2)+'%', sub:'목표 '+tgtRate.toFixed(1)+'%', ok:isOk},
+        {label:'PPM (백만개당 불량)', val:fmt(curPPM), sub:'목표 '+fmt(tgtPPM), ok:curPPM<=tgtPPM},
+        {label:'시그마(σ) 수준', val:sigma.toFixed(1)+'σ',
+          sub:sigma>=5?'우수':sigma>=4?'양호':sigma>=3?'주의':'위험', ok:sigma>=4,
+          note:sigma>=5?'6σ 세계최고 수준':sigma>=4?'양호 – 일반 산업 기준':sigma>=3?'3σ – 공정 개선 필요':'3σ 미만 – 긴급 개선',
+          tip:'시그마 수준 해설\n6σ = 불량 3.4 PPM (세계 최우수)\n5σ = 불량 233 PPM (우수)\n4σ = 불량 6,210 PPM (양호, 일반 산업 목표)\n3σ = 불량 66,807 PPM (주의, 개선 필요)\n3σ 미만 = 공정 불안정, 긴급 대응 필요'},
+        {label:'총 생산수량', val:fmt(kpi.총생산수량)+'개', sub:byDate.length+'일간', ok:true},
+        {label:'목표 초과 일수', val:overDays+'일', sub:'전체 '+byDate.length+'일 중', ok:overDays===0},
+        aiScore
+          ? {label:'AI 품질점수', val:aiScore.score+'점', sub:aiScore.letterGrade+'등급', ok:aiScore.score>=75, note:aiScore.verdict.slice(0,18)+'…'}
+          : {label:'AI 품질점수', val:'-', sub:'데이터 없음', ok:true},
+      ].map(c=>`<div style="background:var(--white);border:1px solid ${c.ok?'#D1FAE5':'#FEE2E2'};border-radius:10px;padding:14px 16px;text-align:center;cursor:${c.tip?'help':'default'}" ${c.tip?`title="${c.tip}"`:''}}>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px">${c.label}${c.tip?' ℹ️':''}</div>
+        <div style="font-size:18px;font-weight:800;color:${c.ok?'#16A34A':'#DC2626'}">${c.val}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:2px">${c.sub}</div>
+        ${c.note?`<div style="font-size:10px;color:${c.ok?'#16A34A':'#DC2626'};margin-top:4px;font-weight:600">${c.note}</div>`:''}
+      </div>`).join('')}
+    </div>
+
+    <!-- ZONE D: 주간 이슈 타임라인 -->
+    ${issueTimeline.length ? `<div style="background:var(--white);border:1px solid #FECACA;border-radius:10px;margin-bottom:16px;overflow:hidden;page-break-inside:avoid">
+      <div style="padding:10px 16px;font-weight:700;font-size:13px;border-bottom:1px solid #FECACA;background:#FEF2F2;display:flex;justify-content:space-between;align-items:center">
+        <span>🗓️ 주간 이슈 일지</span>
+        <span style="font-size:12px;color:#DC2626;font-weight:600">초과 ${issueTimeline.length}일 발생</span>
+      </div>
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        ${issueTimeline.map(ev => `<div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start">
+          <div style="background:#FEE2E2;border-radius:8px;padding:8px 12px;text-align:center;min-width:100px">
+            <div style="font-size:11px;font-weight:700;color:#DC2626">📍 ${ev.label}</div>
+            <div style="font-size:16px;font-weight:800;color:#DC2626;margin-top:2px">${ev.rate.toFixed(2)}%</div>
+            <div style="font-size:10px;color:#DC2626">▲ +${ev.diff.toFixed(2)}%p</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;padding-top:4px">
+            <div style="font-size:12px;color:var(--text)">생산 <b>${fmt(ev.prod)}</b>개 / 불량 <b style="color:#DC2626">${fmt(ev.bad)}</b>개</div>
+            ${ev.topItem ? `<div style="font-size:12px;color:var(--text)">최고 위험 품목: <b>「${ev.topItem.nm}」</b> — 불량률 <b style="color:#DC2626">${ev.topItem.rate.toFixed(2)}%</b></div>` : ''}
+          </div>
+        </div>`).join('<hr style="border:none;border-top:1px dashed var(--border);margin:0">')}
+      </div>
+    </div>` : `<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;font-weight:600;color:#15803D;page-break-inside:avoid">
+      🗓️ 주간 이슈 일지 — 분석 기간 내 목표 초과일 없음. 공정 안정 상태 유지 중입니다.
+    </div>`}
+
+    <!-- ZONE E: 우선순위 액션 아이템 -->
+    ${(()=>{
+      const catColor = { '공정':'#2563EB', '품질':'#DC2626', '관리':'#6B7280' };
+      const catBg    = { '공정':'#DBEAFE', '품질':'#FEE2E2', '관리':'#F3F4F6' };
+      const renderItems = (items) => items.map(it =>
+        `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+          <span style="background:${catBg[it.cat]||'#F3F4F6'};color:${catColor[it.cat]||'#374151'};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px">${it.cat}</span>
+          <span style="font-size:13px;color:var(--text);line-height:1.5">${it.text}</span>
+        </div>`
+      ).join('');
+      const zones = [
+        { title:'🚨 긴급 (즉시 조치)', items: actionItems.urgent,   border:'#FECACA', bg:'#FFF1F2', color:'#991B1B' },
+        { title:'📋 이번 주',          items: actionItems.thisWeek, border:'#FED7AA', bg:'#FFF7ED', color:'#9A3412' },
+        { title:'📅 이번 달',          items: actionItems.thisMonth,border:'#BFDBFE', bg:'#EFF6FF', color:'#1E40AF' },
+      ].filter(z => z.items.length > 0);
+      if (!zones.length) return '';
+      return `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;page-break-inside:avoid">
+        <div style="padding:10px 16px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border);background:var(--bg)">
+          ✅ 우선순위 액션 아이템
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          ${zones.map(z => `<div style="border-left:4px solid ${z.border};background:${z.bg};padding:12px 16px">
+            <div style="font-size:12px;font-weight:700;color:${z.color};margin-bottom:8px">${z.title} (${z.items.length}건)</div>
+            ${renderItems(z.items)}
+          </div>`).join('')}
+        </div>
+      </div>`;
+    })()}
+
+    <!-- 주별/월별 추이 차트 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">주별 불량률 추이</div>
+        <div id="chartWeeklyDefect" style="height:400px"></div>
+      </div>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">월별 생산 실적</div>
+        <div id="chartMonthlyPerf" style="height:400px"></div>
+      </div>
+    </div>
+
+    <!-- 주간 비교 테이블 -->
+    ${wCur ? `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+      <div style="padding:12px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border);background:var(--bg)">
+        주간 비교 (최근 주 vs 전주)
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:var(--bg)">
+              <th style="padding:8px 12px;text-align:left;color:var(--text-light);font-weight:600">지표</th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">이번 주<br><small>${wCur.생산일자}</small></th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">전주<br><small>${wPrev?wPrev.생산일자:'-'}</small></th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">전주 대비</th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">목표</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${wRow('불량률(%)', wCur.불량률*100, wPrev?wPrev.불량률*100:null, tgtRate.toFixed(1)+'%', v=>v<=tgtRate)}
+            ${wRow('PPM', wCur.PPM, wPrev?wPrev.PPM:null, fmt(tgtPPM), v=>v<=tgtPPM)}
+            ${wRow('생산수량(개)', wCur.생산수량, wPrev?wPrev.생산수량:null, '-', ()=>true)}
+            ${wRow('불량수량(개)', wCur.불량수량, wPrev?wPrev.불량수량:null, '-', v=>v<=(wPrev?wPrev.불량수량:v))}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text-light)">주간 비교를 위한 2주 이상의 데이터가 필요합니다.</div>'}
+
+    <!-- 일별 실적 현황 -->
+    ${byDate.length ? `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;font-size:14px">일별 실적 현황</span>
+        <span style="font-size:12px;color:var(--text-light)">
+          목표 달성 <span style="color:#16A34A;font-weight:700">${byDate.filter(r=>r.불량률*100<=tgtRate).length}일</span>
+          / 초과 <span style="color:#DC2626;font-weight:700">${overDays}일</span>
+          (전체 ${byDate.length}일)
+        </span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:var(--bg)">
+              <th style="padding:8px 12px;text-align:left;color:var(--text-light);font-weight:600">날짜</th>
+              <th style="padding:8px 12px;text-align:right;color:var(--text-light);font-weight:600">생산수량</th>
+              <th style="padding:8px 12px;text-align:right;color:var(--text-light);font-weight:600">양품수량</th>
+              <th style="padding:8px 12px;text-align:right;color:var(--text-light);font-weight:600">불량수량</th>
+              <th style="padding:8px 12px;text-align:right;color:var(--text-light);font-weight:600">불량률</th>
+              <th style="padding:8px 12px;text-align:right;color:var(--text-light);font-weight:600">PPM</th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">목표대비</th>
+              <th style="padding:8px 12px;text-align:center;color:var(--text-light);font-weight:600">상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${byDate.map(r=>{
+              const rate=r.불량률*100, over=rate>tgtRate, diff=rate-tgtRate;
+              return `<tr style="background:${over?'#FEF2F2':'transparent'};border-bottom:1px solid var(--border)">
+                <td style="padding:8px 12px;font-weight:600">${dateKRFull(dateStr(r.생산일자))}</td>
+                <td style="padding:8px 12px;text-align:right">${fmt(r.생산수량)}</td>
+                <td style="padding:8px 12px;text-align:right">${fmt(r.양품수량)}</td>
+                <td style="padding:8px 12px;text-align:right;color:${over?'#DC2626':'inherit'}">${fmt(r.불량수량)}</td>
+                <td style="padding:8px 12px;text-align:right;font-weight:700;color:${over?'#DC2626':'#16A34A'}">${pct(rate)}</td>
+                <td style="padding:8px 12px;text-align:right">${fmt(Math.round(r.PPM||0))}</td>
+                <td style="padding:8px 12px;text-align:center;font-weight:600;color:${over?'#DC2626':'#16A34A'}">${diff>=0?'+':''}${diff.toFixed(2)}%p</td>
+                <td style="padding:8px 12px;text-align:center;white-space:nowrap;width:60px">
+                  <span style="background:${over?'#FEE2E2':'#D1FAE5'};color:${over?'#DC2626':'#16A34A'};font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;white-space:nowrap;display:inline-block">${over?'▲ 초과':'✓ 달성'}</span>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--bg);font-weight:700;border-top:2px solid var(--border)">
+              <td style="padding:8px 12px">합 계</td>
+              <td style="padding:8px 12px;text-align:right">${fmt(byDate.reduce((s,r)=>s+r.생산수량,0))}</td>
+              <td style="padding:8px 12px;text-align:right">${fmt(byDate.reduce((s,r)=>s+r.양품수량,0))}</td>
+              <td style="padding:8px 12px;text-align:right">${fmt(byDate.reduce((s,r)=>s+r.불량수량,0))}</td>
+              <td style="padding:8px 12px;text-align:right;color:${isOk?'#16A34A':'#DC2626'}">${curRate.toFixed(2)}%</td>
+              <td style="padding:8px 12px;text-align:right">${fmt(curPPM)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <!-- 품목별 워스트5 / 베스트5 -->
+    ${(()=>{
+      const items = [...byItem].filter(r=>r.생산수량>=50).sort((a,b)=>b.불량률-a.불량률);
+      const worst5 = items.slice(0,5);
+      const best5  = items.slice(-5).reverse();
+      const overCnt = items.filter(r=>r.불량률*100>tgtRate).length;
+      const itemRow = (r, i, rankColor, isWorst) => {
+        const rate=r.불량률*100, over=rate>tgtRate, diff=rate-tgtRate;
+        const badge=rate>tgtRate*2?{t:'위험',c:'#DC2626',bg:'#FEE2E2'}:rate>tgtRate?{t:'주의',c:'#D97706',bg:'#FEF3C7'}:{t:'달성',c:'#16A34A',bg:'#D1FAE5'};
+        return `<tr style="background:${over?'#FEF2F2':isWorst?'transparent':'#F0FDF4'};border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;text-align:center;font-weight:700;color:${rankColor}">${i+1}</td>
+          <td style="padding:8px 12px;font-weight:600;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.품명}</td>
+          <td style="padding:8px 12px;text-align:right">${fmt(r.생산수량)}</td>
+          <td style="padding:8px 12px;text-align:right;color:${over?'#DC2626':'inherit'}">${fmt(r.불량수량)}</td>
+          <td style="padding:8px 12px;text-align:right;font-weight:700;color:${over?'#DC2626':'#16A34A'}">${pct(rate)}</td>
+          <td style="padding:8px 12px;text-align:right">${fmt(Math.round(r.PPM))}</td>
+          <td style="padding:8px 12px;text-align:center;font-weight:600;color:${over?'#DC2626':'#16A34A'}">${diff>=0?'+':''}${diff.toFixed(2)}%p</td>
+          <td style="padding:8px 12px;text-align:center;white-space:nowrap;width:52px"><span style="background:${badge.bg};color:${badge.c};font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;white-space:nowrap;display:inline-block">${badge.t}</span></td>
+        </tr>`;
+      };
+      const thStyle = `padding:8px 12px;color:var(--text-light);font-weight:600`;
+      const thead = `<thead><tr style="background:var(--bg)">
+        <th style="${thStyle};text-align:center;width:36px">순위</th>
+        <th style="${thStyle};text-align:left">품명</th>
+        <th style="${thStyle};text-align:right">생산수량</th>
+        <th style="${thStyle};text-align:right">불량수량</th>
+        <th style="${thStyle};text-align:right">불량률</th>
+        <th style="${thStyle};text-align:right">PPM</th>
+        <th style="${thStyle};text-align:center">목표대비</th>
+        <th style="${thStyle};text-align:center">상태</th>
+      </tr></thead>`;
+      return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <!-- 워스트 5 -->
+        <div style="background:var(--white);border:1px solid #FECACA;border-radius:10px;overflow:hidden">
+          <div style="padding:10px 16px;border-bottom:1px solid #FECACA;background:#FEF2F2;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:14px;color:#DC2626">🔴 워스트 5 (불량률 상위)</span>
+            <span style="font-size:12px;color:#DC2626;font-weight:600">목표 초과 ${overCnt}개 품목</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              ${thead}
+              <tbody>${worst5.map((r,i)=>itemRow(r,i,['#DC2626','#F59E0B','#D97706','#6B7280','#6B7280'][i],true)).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+        <!-- 베스트 5 -->
+        <div style="background:var(--white);border:1px solid #BBF7D0;border-radius:10px;overflow:hidden">
+          <div style="padding:10px 16px;border-bottom:1px solid #BBF7D0;background:#F0FDF4;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:14px;color:#15803D">🟢 베스트 5 (불량률 하위)</span>
+            <span style="font-size:12px;color:#15803D;font-weight:600">생산 50개 이상 ${items.length}개 품목</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              ${thead}
+              <tbody>${best5.map((r,i)=>itemRow(r,i,'#16A34A',false)).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+    })()}
+
+    <!-- ZONE J: SPC 공정 안정성 + 수율 요약 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;page-break-inside:avoid">
+      <!-- SPC -->
+      <div style="background:var(--white);border:1px solid ${spc.isStable?'#D1FAE5':'#FEE2E2'};border-radius:10px;padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:10px">📈 SPC 공정 안정성</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:22px">${spc.isStable?'🟢':'🔴'}</span>
+          <span style="font-size:16px;font-weight:800;color:${spc.isStable?'#16A34A':'#DC2626'}">${spc.isStable?'안정':'불안정'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          ${[
+            { label:'p̄ 중심선', val:spc.pbarPct.toFixed(2)+'%', c:'var(--primary)' },
+            { label:'UCL',       val:spc.UCL.toFixed(2)+'%',     c:'#DC2626'       },
+            { label:'이탈 횟수', val:spc.outCount+'건',           c:spc.outCount>0?'#DC2626':'#16A34A' },
+          ].map(d => `<div style="background:var(--bg);border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:10px;color:var(--text-light)">${d.label}</div>
+            <div style="font-size:13px;font-weight:700;color:${d.c}">${d.val}</div>
+          </div>`).join('')}
+        </div>
+        ${spc.outCount > 0
+          ? `<div style="font-size:11px;color:#DC2626;background:#FEE2E2;border-radius:6px;padding:6px 10px">⚠️ 관리한계 이탈 ${spc.outCount}건 — 이탈 일자 공정 변수 확인 필요</div>`
+          : `<div style="font-size:11px;color:#15803D;background:#D1FAE5;border-radius:6px;padding:6px 10px">✓ 분석 기간 내 UCL/LCL 이탈 없음</div>`}
+      </div>
+      <!-- 수율 -->
+      <div style="background:var(--white);border:1px solid ${yld.isOk?'#D1FAE5':'#EDE9FE'};border-radius:10px;padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:10px">✅ 수율 분석 요약</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:22px">${yld.isOk?'🟢':'🟣'}</span>
+          <div>
+            <span style="font-size:16px;font-weight:800;color:${yld.isOk?'#16A34A':'#7C3AED'}">${yld.yieldPct.toFixed(2)}%</span>
+            <span style="font-size:11px;color:var(--text-light);margin-left:6px">목표 98%</span>
+          </div>
+        </div>
+        ${yld.bottomItems.length ? `<div style="font-size:11px;font-weight:600;color:var(--text-light);margin-bottom:4px">수율 하위 품목</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${yld.bottomItems.map(b => `<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:5px;padding:4px 8px">
+            <span style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${b.품명}</span>
+            <span style="font-size:12px;font-weight:700;color:${b.yieldPct<97?'#DC2626':'#D97706'};flex-shrink:0;margin-left:6px">${b.yieldPct.toFixed(1)}%</span>
+          </div>`).join('')}
+        </div>` : `<div style="font-size:11px;color:#15803D;background:#D1FAE5;border-radius:6px;padding:6px 10px">✓ 수율 하위 이슈 없음 (생산 50개↑ 기준)</div>`}
+      </div>
+    </div>
+
+    <!-- 트렌드 & 총평 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:8px">트렌드 분석</div>
+        <div style="font-size:22px;font-weight:800;color:${trendColor}">${trendArrow} ${trendLabel}</div>
+        ${wChg !== null ? `<div style="font-size:12px;color:var(--text-light);margin-top:4px">전주 대비 ${wChg>0?'+':''}${wChg.toFixed(2)}%p</div>` : ''}
+        <div style="font-size:12px;color:var(--text-light);margin-top:4px">목표 초과 ${overDays}일 / 전체 ${byDate.length}일</div>
+      </div>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);margin-bottom:8px">시그마(σ) 품질 수준</div>
+        <div style="font-size:22px;font-weight:800;color:${sigma>=5?'#16A34A':sigma>=4?'#2563EB':sigma>=3?'#F59E0B':'#DC2626'}">${sigma.toFixed(1)}σ &nbsp;<span style="font-size:14px">${sigma>=5?'우수':sigma>=4?'양호':sigma>=3?'주의':'위험'}</span></div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:8px;line-height:1.7">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:${sigma>=6?'#16A34A':'var(--text-light)'}">6σ 세계최고</span><span style="color:#16A34A">≤ 3.4 PPM</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:${sigma>=5&&sigma<6?'#16A34A':'var(--text-light)'}">5σ 우수</span><span style="color:#16A34A">≤ 233 PPM</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:${sigma>=4&&sigma<5?'#2563EB':'var(--text-light)'}">4σ 양호</span><span style="color:#2563EB">≤ 6,210 PPM</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:${sigma>=3&&sigma<4?'#F59E0B':'var(--text-light)'}">3σ 주의</span><span style="color:#F59E0B">≤ 66,807 PPM</span>
+          </div>
+        </div>
+        <div style="font-size:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;color:${sigma>=4?'#2563EB':'#DC2626'}">현재 PPM: ${fmt(curPPM)}</div>
+      </div>
+    </div>
+
+    <!-- 출력/복사 버튼 -->
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" style="background:var(--gray);color:#fff"
+        onclick="navigator.clipboard.writeText(document.getElementById('weeklyReportText').innerText).then(()=>showToast('클립보드에 복사되었습니다','success'))">
+        텍스트 복사
+      </button>
+      <button class="btn btn-sm btn-primary" onclick="
+        ['chartWeeklyDefect','chartMonthlyPerf'].forEach(id=>{
+          const el=document.getElementById(id);
+          if(el&&el._fullLayout) try{Plotly.Plots.resize(el);}catch(e){}
+        });
+        setTimeout(()=>window.print(),300);
+      ">인쇄</button>
+    </div>
+  </div>
+  <!-- 클립보드용 텍스트 (숨김) -->
+  <div id="weeklyReportText" style="display:none">
+[주간 품질 경영 보고서] ${todayLabel}
+분석 기간: ${periodLabel}
+
+[대표자 경영 브리핑] 종합 상태: ${sigEmoji} ${sigLabel}
+키워드: ${kwTags.map(k=>k.t).join(' · ')}
+
+[핵심 인사이트]
+${execInsights.map((ins,i)=>`${i+1}. ${ins.replace(/<[^>]+>/g,'')}`).join('\n')}
+
+[핵심 지표]
+- 불량률: ${curRate.toFixed(2)}% (목표: ${tgtRate.toFixed(1)}%) → ${isOk?'목표 달성':'목표 초과'}
+- PPM: ${fmt(curPPM)} (목표: ${fmt(tgtPPM)}) → ${curPPM<=tgtPPM?'목표 달성':'목표 초과'}
+- 시그마 수준: ${sigma.toFixed(1)}σ
+- 총 생산수량: ${fmt(kpi.총생산수량)}개 / ${byDate.length}일간
+- 목표 초과 일수: ${overDays}일
+
+[즉시 조치 품목 TOP3]
+${top3.map((r,i)=>`${i+1}. ${r.품명} - 불량률 ${pct(r.불량률*100)}, PPM ${fmt(Math.round(r.PPM))}`).join('\n')}
+
+[SPC 공정 안정성] ${spc.isStable?'안정':'불안정'} — p̄ ${spc.pbarPct.toFixed(2)}%, UCL 이탈 ${spc.outCount}건
+[수율 분석] ${yld.yieldPct.toFixed(2)}% — 목표(98%) ${yld.isOk?'달성':'미달'}
+${aiScore?`[AI 품질진단] ${aiScore.score}점 · ${aiScore.letterGrade}등급 — ${aiScore.verdict}`:''}
+
+[주간 이슈 일지]
+${issueTimeline.length ? issueTimeline.map(ev=>`• ${ev.label} — 불량률 ${ev.rate.toFixed(2)}% (▲+${ev.diff.toFixed(2)}%p)${ev.topItem?' / 최고위험: '+ev.topItem.nm+' '+ev.topItem.rate.toFixed(2)+'%':''}`).join('\n') : '분석 기간 내 목표 초과일 없음'}
+
+[우선순위 액션 아이템]
+${actionItems.urgent.length  ? '🚨 긴급:\n'+actionItems.urgent.map(a=>`  [${a.cat}] ${a.text.replace(/<[^>]+>/g,'')}`).join('\n'):''}
+${actionItems.thisWeek.length? '📋 이번주:\n'+actionItems.thisWeek.map(a=>`  [${a.cat}] ${a.text.replace(/<[^>]+>/g,'')}`).join('\n'):''}
+${actionItems.thisMonth.length?'📅 이번달:\n'+actionItems.thisMonth.map(a=>`  [${a.cat}] ${a.text.replace(/<[^>]+>/g,'')}`).join('\n'):''}
+
+[트렌드] ${trendArrow} ${trendLabel}${wChg!==null?' (전주 대비 '+(wChg>0?'+':'')+wChg.toFixed(2)+'%p)':''}
+  </div>`;
+}
+
 /* 대시보드 렌더링
    ================================================================ */
-function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtered) {
+/* ================================================================
+   탭 서브필터 헬퍼
+   ================================================================ */
+function makeTabSubFilterHtml(prefix, applyFn, resetFn) {
+  return `<div class="tab-subfilter" id="${prefix}SubFilter">
+    <span class="tab-subfilter-label">📅 기간</span>
+    <input type="date" id="${prefix}SubStart">
+    <span style="color:var(--text-light);flex-shrink:0">~</span>
+    <input type="date" id="${prefix}SubEnd">
+    <button class="btn btn-sm btn-primary" style="flex-shrink:0;padding:3px 10px;font-size:12px" onclick="${applyFn}()">적용</button>
+    <button class="btn btn-sm" style="background:var(--gray);color:#fff;flex-shrink:0;padding:3px 10px;font-size:12px" onclick="${resetFn}()">초기화</button>
+    <span id="${prefix}SubInfo" class="tab-subfilter-info"></span>
+  </div>`;
+}
+function initSubFilterDates(prefix) {
+  const raw = window._rawFiltered;
+  if (!raw || !raw.length) return;
+  const dates = raw.map(r => dateStr(r.생산일자)).sort();
+  const s = $(prefix + 'SubStart'), e = $(prefix + 'SubEnd');
+  if (!s || !e) return;
+  s.min = e.min = dates[0];
+  s.max = e.max = dates[dates.length - 1];
+  s.value = dates[0];
+  e.value = dates[dates.length - 1];
+}
+function setSubFilterInfo(prefix, sub) {
+  const el = $(prefix + 'SubInfo');
+  if (!el) return;
+  const days = [...new Set(sub.map(r => dateStr(r.생산일자)))].length;
+  el.textContent = `(${days}일 · ${fmt(sub.length)}건)`;
+}
+function buildSPCKpiHtml(bd) {
+  const totalBad  = bd.reduce((s, r) => s + r.불량수량, 0);
+  const totalProd = bd.reduce((s, r) => s + r.생산수량, 0);
+  const pbar   = totalProd ? totalBad / totalProd : 0;
+  const pbarPct = pbar * 100;
+  const avgN   = bd.length ? Math.round(totalProd / bd.length) : 1;
+  const UCLavg = (pbar + 3 * Math.sqrt(pbar * (1 - pbar) / Math.max(avgN, 1))) * 100;
+  const LCLavg = Math.max(0, (pbar - 3 * Math.sqrt(pbar * (1 - pbar) / Math.max(avgN, 1)))) * 100;
+  const outCnt = bd.filter(r => {
+    const pi = r.불량률 * 100, ni = Math.max(r.생산수량, 1);
+    const ucli = (pbar + 3 * Math.sqrt(pbar * (1 - pbar) / ni)) * 100;
+    const lcli = Math.max(0, (pbar - 3 * Math.sqrt(pbar * (1 - pbar) / ni)) * 100);
+    return pi > ucli || pi < lcli;
+  }).length;
+  return `<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card"><div class="value" style="color:var(--primary)">${pct(pbarPct)}</div><div class="label">p̄ (중심선)</div></div>
+    <div class="kpi-card"><div class="value" style="color:var(--danger)">${pct(UCLavg)}</div><div class="label">UCL (평균 nᵢ 기준)</div></div>
+    <div class="kpi-card"><div class="value" style="color:var(--warning)">${pct(LCLavg)}</div><div class="label">LCL (평균 nᵢ 기준)</div></div>
+  </div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
+    <div class="kpi-card"><div class="value" style="color:var(--gray)">${fmt(avgN)}</div><div class="label">평균 서브그룹 크기</div></div>
+    <div class="kpi-card"><div class="value" style="color:${outCnt > 0 ? 'var(--danger)' : 'var(--success)'}">${outCnt}건</div><div class="label">관리이탈 횟수</div></div>
+    <div class="kpi-card"><div class="value" style="color:${outCnt === 0 ? 'var(--success)' : 'var(--danger)'}">${outCnt === 0 ? '안정' : '불안정'}</div><div class="label">공정 상태</div></div>
+  </div>`;
+}
+
+/* ── 주간 보고: SPC 요약 계산 (buildSPCKpiHtml 로직 재활용) ── */
+function calcSPCSummary(bd) {
+  if (!bd || !bd.length) return { pbarPct: 0, UCL: 0, LCL: 0, outCount: 0, isStable: true };
+  const totalBad  = bd.reduce((s, r) => s + r.불량수량, 0);
+  const totalProd = bd.reduce((s, r) => s + r.생산수량, 0);
+  const pbar   = totalProd ? totalBad / totalProd : 0;
+  const avgN   = bd.length ? Math.round(totalProd / bd.length) : 1;
+  const UCL    = (pbar + 3 * Math.sqrt(pbar * (1 - pbar) / Math.max(avgN, 1))) * 100;
+  const LCL    = Math.max(0, (pbar - 3 * Math.sqrt(pbar * (1 - pbar) / Math.max(avgN, 1)))) * 100;
+  const outCount = bd.filter(r => {
+    const pi = r.불량률 * 100, ni = Math.max(r.생산수량, 1);
+    const ucli = (pbar + 3 * Math.sqrt(pbar * (1 - pbar) / ni)) * 100;
+    const lcli = Math.max(0, (pbar - 3 * Math.sqrt(pbar * (1 - pbar) / ni)) * 100);
+    return pi > ucli || pi < lcli;
+  }).length;
+  return { pbarPct: pbar * 100, UCL, LCL, outCount, isStable: outCount === 0 };
+}
+
+/* ── 주간 보고: 수율 요약 계산 ── */
+function calcYieldSummary(bd, bi, targetYield = 98) {
+  if (!bd || !bd.length) return { yieldPct: 100, isOk: true, bottomItems: [] };
+  const totalProd = bd.reduce((s, r) => s + (r.생산수량 || 0), 0);
+  const totalGood = bd.reduce((s, r) => s + (r.양품수량  || 0), 0);
+  const yieldPct  = totalProd > 0 ? totalGood / totalProd * 100 : 100;
+  const bottomItems = [...(bi || [])]
+    .filter(r => r.생산수량 >= 50)
+    .sort((a, b) => b.불량률 - a.불량률)
+    .slice(0, 3)
+    .map(r => ({ 품명: r.품명, yieldPct: (1 - r.불량률) * 100 }));
+  return { yieldPct, isOk: yieldPct >= targetYield, bottomItems };
+}
+
+/* ── 주간 보고: 이슈 타임라인 (목표 초과일만) ── */
+function buildIssueTimeline(byDate, tgtRate) {
+  const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+  return byDate
+    .filter(r => r.불량률 * 100 > tgtRate)
+    .map(r => {
+      const ds = dateStr(r.생산일자);
+      const dayRaw = (window._rawFiltered || []).filter(row => dateStr(row.생산일자) === ds);
+      const itemMap = {};
+      dayRaw.forEach(row => {
+        const nm = row.품명 || '미상';
+        if (!itemMap[nm]) itemMap[nm] = { bad: 0, prod: 0 };
+        itemMap[nm].bad  += (row.불량수량 || 0);
+        itemMap[nm].prod += (row.생산수량 || 0);
+      });
+      const topItem = Object.entries(itemMap)
+        .map(([nm, v]) => ({ nm, rate: v.prod > 0 ? v.bad / v.prod * 100 : 0, prod: v.prod }))
+        .filter(v => v.prod >= 10)
+        .sort((a, b) => b.rate - a.rate)[0] || null;
+      const d = new Date(ds);
+      return {
+        label  : dateKRFull(ds) + ' (' + (dowNames[d.getDay()] || '') + '요일)',
+        rate   : r.불량률 * 100,
+        diff   : r.불량률 * 100 - tgtRate,
+        prod   : r.생산수량,
+        bad    : r.불량수량,
+        topItem,
+      };
+    });
+}
+
+/* ── 주간 보고: 우선순위 액션 아이템 생성 ── */
+function buildActionItems(kpi, byDate, byItem, spc, yld, aiScore, byWeek, tgtRate) {
+  const urgent = [], thisWeek = [], thisMonth = [];
+  const curRate   = kpi.불량률;
+  const isOk      = curRate <= tgtRate;
+  const overDays  = byDate.filter(r => r.불량률 * 100 > tgtRate).length;
+  const overRatio = byDate.length ? overDays / byDate.length : 0;
+  const wCur  = byWeek.length >= 1 ? byWeek[byWeek.length - 1] : null;
+  const wPrev = byWeek.length >= 2 ? byWeek[byWeek.length - 2] : null;
+  const wChg  = (wCur && wPrev) ? (wCur.불량률 - wPrev.불량률) * 100 : null;
+  const dangerItems = [...byItem].filter(r => r.생산수량 >= 50 && r.불량률 * 100 > tgtRate * 2);
+
+  // 긴급 조치
+  dangerItems.slice(0, 3).forEach(item => {
+    urgent.push({ cat: '공정', text: `<b>「${item.품명}」</b> 라인 즉시 점검 — 불량률 ${pct(item.불량률 * 100)} · 목표 대비 ${(item.불량률 * 100 / Math.max(tgtRate, 0.01)).toFixed(1)}배` });
+  });
+  if (spc.outCount >= 3) {
+    urgent.push({ cat: '품질', text: `SPC 관리한계 이탈 <b>${spc.outCount}건</b> — 공정 불안정, 이탈 원인 즉시 분석 필요` });
+  }
+  if (!isOk && wChg !== null && wChg > 0.1) {
+    urgent.push({ cat: '품질', text: `불량률 목표 초과 + 전주 대비 <b>악화 추세</b> — 이번 주 변동 원인 긴급 점검` });
+  }
+
+  // 이번 주
+  if (spc.outCount >= 1 && spc.outCount < 3) {
+    thisWeek.push({ cat: '품질', text: `SPC 관리한계 이탈 <b>${spc.outCount}건</b> — 이탈 일자 특이 요인 파악 후 재발 방지` });
+  }
+  if (!yld.isOk) {
+    const bStr = yld.bottomItems.slice(0, 2).map(b => `${b.품명}(${b.yieldPct.toFixed(1)}%)`).join(', ');
+    thisWeek.push({ cat: '품질', text: `수율 <b>${yld.yieldPct.toFixed(1)}%</b>로 목표(98%) 미달 — 하위 품목(${bStr || '해당없음'}) 공정 조건 재검토` });
+  }
+  if (overDays >= 1 && overRatio < 0.5) {
+    thisWeek.push({ cat: '관리', text: `목표 초과 <b>${overDays}일</b> 발생 — 해당 일자 특이 요인 분석 및 재발 방지 조치` });
+  } else if (overRatio >= 0.5 && overDays > 0) {
+    thisWeek.push({ cat: '공정', text: `과반(${overDays}일) 목표 초과 — 구조적 공정 불안정 의심, 근본 원인 분석 필요` });
+  }
+  if (aiScore && aiScore.score < 60) {
+    thisWeek.push({ cat: '품질', text: `AI 품질점수 <b>${aiScore.score}점 (${aiScore.letterGrade}등급)</b> — 품질 개선 활동 계획 수립 권고` });
+  }
+
+  // 이번 달
+  if (wChg !== null && wChg < -0.1 && isOk) {
+    thisMonth.push({ cat: '관리', text: `전주 대비 <b>개선 추세</b> 유지 중 — 현 개선 활동 내용 표준화 및 문서화 검토` });
+  }
+  const prev2 = byWeek.length >= 3 ? byWeek[byWeek.length - 3] : null;
+  if (wCur && wPrev && prev2 && wCur.불량률 < wPrev.불량률 && wPrev.불량률 < prev2.불량률) {
+    thisMonth.push({ cat: '관리', text: `3주 연속 불량률 개선 — 개선 사례 수평 전개 및 우수 공정 표준화` });
+  }
+  if (isOk && spc.isStable && yld.isOk) {
+    thisMonth.push({ cat: '관리', text: `전 지표 목표 달성 — 현재 품질 수준 지속 모니터링 및 추가 개선 목표 설정 검토` });
+  }
+  if (!urgent.length && !thisWeek.length && !thisMonth.length) {
+    thisMonth.push({ cat: '관리', text: '현재 주요 품질 이슈 없음 — 정기 모니터링 유지' });
+  }
+  return { urgent, thisWeek, thisMonth };
+}
+
+// ── 주간 보고 전역 헬퍼 (사이드바 필터 재적용 시에도 안정적으로 참조) ──
+function shortWeekLabel(wLabel) {
+  const m = wLabel.match(/(\d+)\/(\d+)\s*주/);
+  return m ? m[1] + '/' + m[2] + ' 주' : wLabel;
+}
+function buildWeekBtnsHtml(weeks, selected) {
+  let html = `<div id="weekBtnArea" style="overflow-x:auto;margin-bottom:16px;padding-bottom:4px">
+    <div style="display:flex;gap:6px;min-width:max-content">`;
+  const allActive = selected === '전체';
+  html += `<button class="btn btn-sm ${allActive?'btn-primary':''}" style="${allActive?'':'background:var(--gray);color:#fff'}"
+    data-week="전체" onclick="selectWeekReport('전체')">전체</button>`;
+  weeks.forEach(w => {
+    const active = selected === w.생산일자;
+    html += `<button class="btn btn-sm ${active?'btn-primary':''}" style="${active?'':'background:var(--gray);color:#fff'}"
+      data-week="${w.생산일자}" onclick="selectWeekReport('${w.생산일자}')">${shortWeekLabel(w.생산일자)}</button>`;
+  });
+  html += `</div></div>`;
+  return html;
+}
+function selectWeekReport(wLabel) {
+  window._selectedWeek = wLabel;
+  const d = window._weeklyReportData;
+  if (!d) return;
+  const container = $('weekBtnContainer');
+  if (container) container.innerHTML = buildWeekBtnsHtml(d.byWeek, wLabel);
+  const area = $('weeklyReportArea');
+  if (!area) return;
+  if (wLabel === '전체') {
+    area.innerHTML = generateWeeklyReport(d.kpi, d.byDate, d.byItem, d.byWeek);
+    renderWeeklyCharts(d.byWeek, d.byMonth || [], '전체');
+    return;
+  }
+  const sub = (window._rawFiltered || []).filter(r => weekLabel(dateStr(r.생산일자)) === wLabel);
+  if (!sub.length) { showToast('해당 주 데이터가 없습니다.', 'warn', 3000); return; }
+  const kpiW    = calcKPI(sub);
+  const byDateW = aggByDate(sub);
+  const byItemW = aggByItem(sub);
+  const idx = d.byWeek.findIndex(w => w.생산일자 === wLabel);
+  const byWeekCtx = idx > 0 ? [d.byWeek[idx - 1], d.byWeek[idx]] : [d.byWeek[idx]];
+  area.innerHTML = generateWeeklyReport(kpiW, byDateW, byItemW, byWeekCtx);
+  renderWeeklyCharts(d.byWeek, d.byMonth || [], wLabel);
+}
+function refreshWeeklyReport() {
+  const d = window._weeklyReportData;
+  if (!d) return;
+  const sel = window._selectedWeek || '전체';
+  const container = $('weekBtnContainer');
+  if (container) container.innerHTML = buildWeekBtnsHtml(d.byWeek, sel);
+  selectWeekReport(sel);
+}
+
+// ── 주간 보고: 주별/월별 Plotly 차트 렌더링 ──
+function renderWeeklyCharts(allByWeek, allByMonth, selectedWeek) {
+  const wEl = $('chartWeeklyDefect');
+  const mEl = $('chartMonthlyPerf');
+  const tgt  = (typeof targetDefectRate !== 'undefined') ? targetDefectRate : 0.8;
+
+  // ── 주별 불량률 추이 차트 ──
+  if (wEl && allByWeek && allByWeek.length) {
+    const labels = allByWeek.map(w => shortWeekLabel(w.생산일자));
+    const rates  = allByWeek.map(w => +(w.불량률 * 100).toFixed(3));
+    const n = rates.length;
+
+    // 선형 추세선
+    let trend = rates.slice();
+    if (n >= 2) {
+      const mx = (n - 1) / 2, my = rates.reduce((a, b) => a + b, 0) / n;
+      const b  = rates.reduce((s, v, i) => s + (i - mx) * (v - my), 0)
+               / rates.reduce((s, _, i) => s + (i - mx) ** 2, 0);
+      const a  = my - b * mx;
+      trend = rates.map((_, i) => Math.max(0, +(a + b * i).toFixed(3)));
+    }
+
+    // Y축 범위: 데이터 근처로 줌인하여 차이를 명확히
+    const rMin = Math.min(...rates, tgt);
+    const rMax = Math.max(...rates, tgt);
+    const pad  = (rMax - rMin) * 0.6 || 0.3;
+    const yMin = Math.max(0, rMin - pad);
+    const yMax = rMax + pad * 1.2;
+
+    // 막대 색상
+    const colors = allByWeek.map(w => {
+      const over = w.불량률 * 100 > tgt;
+      const sel  = selectedWeek && selectedWeek !== '전체' && w.생산일자 === selectedWeek;
+      if (sel) return over ? '#B91C1C' : '#15803D';
+      return over ? '#EF4444' : '#22C55E';
+    });
+
+    Plotly.newPlot(wEl, [
+      // 막대
+      { type: 'bar', x: labels, y: rates,
+        marker: { color: colors, line: { color: 'rgba(255,255,255,0.4)', width: 1 } },
+        text: rates.map(v => '<b>' + v.toFixed(2) + '%</b>'),
+        textposition: 'outside', textfont: { size: 13, color: '#1e293b' },
+        name: '불량률', cliponaxis: false },
+      // 목표선: 굵은 주황 실선 + 끝 레이블
+      { type: 'scatter', mode: 'lines',
+        x: labels, y: Array(n).fill(tgt),
+        line: { color: '#F97316', width: 3, dash: 'solid' },
+        name: '목표 ' + tgt.toFixed(1) + '%', hoverinfo: 'skip' },
+      // 추세선: 진한 남색 파선 (막대색과 완전히 다른 계열)
+      { type: 'scatter', mode: 'lines+markers',
+        x: labels, y: trend,
+        line: { color: '#1e3a5f', width: 2.5, dash: 'dashdot' },
+        marker: { color: '#1e3a5f', size: 7, symbol: 'diamond' },
+        name: '추세선', hoverinfo: 'skip' }
+    ], {
+      margin: { t: 35, r: 68, b: 65, l: 52 },
+      xaxis: { tickfont: { size: 13 }, tickangle: labels.length > 6 ? -30 : 0,
+               showgrid: false },
+      yaxis: { tickformat: '.2f', ticksuffix: '%', range: [yMin, yMax],
+               tickfont: { size: 12 }, gridcolor: 'rgba(0,0,0,0.06)' },
+      // 목표 구역 (목표 이하 = 연초록 음영)
+      shapes: [{
+        type: 'rect', xref: 'paper', yref: 'y',
+        x0: 0, x1: 1, y0: yMin, y1: tgt,
+        fillcolor: 'rgba(34,197,94,0.08)',
+        line: { width: 0 }, layer: 'below'
+      }],
+      // 목표선 우측 라벨
+      annotations: [{
+        xref: 'paper', yref: 'y', x: 1.01, y: tgt,
+        text: '<b>목표<br>' + tgt.toFixed(1) + '%</b>',
+        showarrow: false, xanchor: 'left', yanchor: 'middle',
+        font: { size: 11, color: '#F97316' },
+        bgcolor: '#FFF7ED', bordercolor: '#F97316',
+        borderwidth: 1, borderpad: 3
+      }],
+      legend: { orientation: 'h', y: -0.4, x: 0, font: { size: 12 },
+                traceorder: 'normal' },
+      bargap: 0.2,
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { size: 13 }
+    }, { responsive: true, displayModeBar: false });
+  }
+
+  // ── 월별 생산 실적 차트 (전체 연도) ──
+  if (mEl && allByMonth && allByMonth.length) {
+    const yCnt = {};
+    allByMonth.forEach(r => { const y = r.생산일자.slice(0, 4); yCnt[y] = (yCnt[y] || 0) + r.생산수량; });
+    const dataYear = Object.entries(yCnt).sort((a, b) => b[1] - a[1])[0][0];
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+    const getRow  = m => allByMonth.find(r => r.생산일자 === `${dataYear}-${String(m).padStart(2, '0')}`);
+    const mProds  = months.map(m => { const r = getRow(m); return r ? r.생산수량 : null; });
+    const mRates  = months.map(m => { const r = getRow(m); return r ? +(r.불량률 * 100).toFixed(3) : null; });
+
+    // 추세선
+    const vi = months.map((_, i) => i).filter(i => mRates[i] !== null);
+    let mTrend = Array(12).fill(null);
+    if (vi.length >= 2) {
+      const xs = vi, ys = vi.map(i => mRates[i]);
+      const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+      const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+      const b  = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0)
+               / xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+      const a  = my - b * mx;
+      for (let i = vi[0]; i <= vi[vi.length - 1]; i++) mTrend[i] = Math.max(0, +(a + b * i).toFixed(3));
+    }
+
+    const prodMax = Math.max(...mProds.filter(v => v !== null), 1);
+    const rVals   = mRates.filter(v => v !== null);
+    const rMin2   = Math.min(...rVals, tgt);
+    const rMax2   = Math.max(...rVals, tgt);
+    const rPad    = (rMax2 - rMin2) * 0.6 || 0.3;
+    const rAxisMax = rMax2 + rPad * 1.2;
+
+    // 1~12월 전체 표시: null 인 달은 bar 없음, 선은 연결 안 함
+    const mBarColors = months.map(m => mRates[m-1] !== null && mRates[m-1] > tgt ? '#EF4444' : '#22C55E');
+    const rateX  = months.filter((_, i) => mRates[i] !== null);
+    const trendX = months.filter((_, i) => mTrend[i] !== null);
+    const mDotColors = rateX.map(m => mRates[m-1] > tgt ? '#DC2626' : '#16A34A');
+
+    Plotly.newPlot(mEl, [
+      // 생산수량 막대 (1~12월, null인 달은 자동 생략)
+      { type: 'bar', x: months, y: mProds,
+        marker: { color: mBarColors, line: { color: 'rgba(255,255,255,0.4)', width: 1 } },
+        text: mProds.map(v => v !== null ? fmt(v) : ''),
+        textposition: 'outside', textfont: { size: 12, color: '#1e293b' },
+        name: '생산수량', cliponaxis: false },
+      // 목표 불량률선: 1~12월 전체 수평선
+      { type: 'scatter', mode: 'lines',
+        x: [1, 12], y: [tgt, tgt],
+        line: { color: '#F97316', width: 2.5, dash: 'dot' },
+        name: '목표 ' + tgt.toFixed(1) + '%', yaxis: 'y2', hoverinfo: 'skip' },
+      // 불량률선: 데이터 있는 달만 연결
+      { type: 'scatter', mode: 'lines+markers+text',
+        x: rateX, y: rateX.map(m => mRates[m-1]),
+        line: { color: '#7C3AED', width: 3 },
+        marker: { color: mDotColors, size: 11,
+                  symbol: 'circle', line: { color: '#fff', width: 2 } },
+        text: rateX.map(m => '<b>' + mRates[m-1].toFixed(2) + '%</b>'),
+        textposition: 'top center', textfont: { size: 12 },
+        name: '불량률', yaxis: 'y2' },
+      // 추세선
+      { type: 'scatter', mode: 'lines',
+        x: trendX, y: trendX.map(m => mTrend[m-1]),
+        line: { color: '#1e3a5f', dash: 'dashdot', width: 2.5 },
+        name: '추세선', yaxis: 'y2', hoverinfo: 'skip' }
+    ], {
+      title: { text: '<b>' + dataYear + '년 실적</b>', font: { size: 14 }, x: 0.5 },
+      margin: { t: 78, r: 70, b: 55, l: 58 },
+      xaxis: { tickvals: months, ticktext: months.map(m => m + '월'),
+               range: [0.5, 12.5],   // 1~12월 강제 표시
+               tickfont: { size: 13 }, showgrid: false },
+      yaxis: { tickformat: ',', range: [0, prodMax * 1.55], title: '',
+               tickfont: { size: 12 }, gridcolor: 'rgba(0,0,0,0.06)' },
+      yaxis2: { tickformat: '.2f', ticksuffix: '%', overlaying: 'y', side: 'right',
+                range: [0, rAxisMax * 1.35], title: '', tickfont: { size: 12 },
+                showgrid: false },
+      legend: { orientation: 'h', y: -0.3, x: 0, font: { size: 12 } },
+      bargap: 0.25,
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { size: 13 }
+    }, { responsive: true, displayModeBar: false });
+  }
+}
+
+function renderDashboard(kpi, byDate, byItem, totals, alerts, filtered) {
   // 기존 Plotly 차트 메모리 정리 (모바일 성능 개선)
   document.querySelectorAll('#dashboard .js-plotly-plot').forEach(p => {
     try { Plotly.purge(p); } catch(e) {}
@@ -4316,6 +5669,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
 
   $('placeholder').style.display = 'none';
   $('dashboard').style.display = '';
+  window._rawFiltered = filtered || [];
 
   // 분석 시각 표시
   const now = new Date();
@@ -4349,7 +5703,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   const t1RiskScores = calcItemRiskScores(byItem, filtered, aiRiskSettings);
   const t1Diagnosis = generateDiagnosisText(kpi, t1Trends, t1Anomalies, analyzeDefectTypes(byDate), t1RiskScores, byDate, targetDefectRate);
   const t1Stats = t1Diagnosis.stats;
-  const t1QS = calcQualityScore(kpi, t1Trends, t1Anomalies, t1RiskScores, t1Stats);
+  const t1QS = calcQualityScore(kpi, t1Trends, t1Anomalies, t1RiskScores, t1Stats, targetDefectRate);
   const t1BannerClass = t1QS.score >= 75 ? 'safe' : t1QS.score >= 45 ? 'warn' : 'danger';
   const t1BannerEmoji = t1QS.score >= 75 ? '🟢' : t1QS.score >= 45 ? '🟡' : '🔴';
 
@@ -4571,17 +5925,38 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   const byWeek = (filtered && filtered.length) ? aggByWeek(filtered) : [];
   const byMonth = (filtered && filtered.length) ? aggByMonth(filtered) : [];
   const dateHeaders = ['생산일자','생산수량','양품수량','불량수량',...defectCols,'불량률','PPM'];
-  let t2Html = '<div class="chart-box"><h3>일자별 생산수량 및 불량률 추이</h3><div id="chartDailyTrend"></div></div>';
+  let t2Html = makeTabSubFilterHtml('t2', 'applyT2SubFilter', 'resetT2SubFilter')
+    + `<div class="chart-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+      <h3 id="titleDailyTrend" style="margin:0">일별 생산수량 및 불량률 추이</h3>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-primary" id="btnTrendDaily" onclick="switchTrendPeriod('daily')">일별</button>
+        <button class="btn btn-sm" id="btnTrendWeekly" onclick="switchTrendPeriod('weekly')" style="background:var(--gray);color:#fff">주별</button>
+        <button class="btn btn-sm" id="btnTrendMonthly" onclick="switchTrendPeriod('monthly')" style="background:var(--gray);color:#fff">월별</button>
+      </div>
+    </div>
+    <div id="chartDailyTrend"></div>
+  </div>`;
   if (defectCols.length) {
-    t2Html += '<div class="chart-box"><h3>일자별 불량유형 구성</h3><div id="chartDailyStack"></div></div>';
+    t2Html += `<div class="chart-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+        <h3 id="titleDailyStack" style="margin:0">일별 불량유형 구성</h3>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-primary" id="btnStackDaily" onclick="switchStackPeriod('daily')">일별</button>
+          <button class="btn btn-sm" id="btnStackWeekly" onclick="switchStackPeriod('weekly')" style="background:var(--gray);color:#fff">주별</button>
+          <button class="btn btn-sm" id="btnStackMonthly" onclick="switchStackPeriod('monthly')" style="background:var(--gray);color:#fff">월별</button>
+        </div>
+      </div>
+      <div id="chartDailyStack"></div>
+    </div>`;
   }
   // 요일별 패턴 + 생산량 vs 불량률 산점도
   t2Html += '<div class="chart-box"><h3>📊 요일별 평균 불량률 패턴</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:4px">어떤 요일에 불량이 많은지 패턴을 확인하세요</p><div class="weekday-chart-box"><div id="chartWeekday"></div><div id="chartProdVsDefect"></div></div></div>';
   t2Html += `<div class="chart-box"><h3>집계 단위 변환</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:8px">일별/주별/월별 불량률과 PPM을 함께 비교합니다</p>
     <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button class="btn btn-sm btn-primary" onclick="showAggTable('daily')">일별</button>
-      <button class="btn btn-sm" style="background:var(--gray);color:#fff" onclick="showAggTable('weekly')">주간</button>
-      <button class="btn btn-sm" style="background:var(--gray);color:#fff" onclick="showAggTable('monthly')">월간</button>
+      <button class="btn btn-sm btn-primary" id="btnAggDaily" onclick="showAggTable('daily')">일별</button>
+      <button class="btn btn-sm" id="btnAggWeekly" onclick="showAggTable('weekly')" style="background:var(--gray);color:#fff">주간</button>
+      <button class="btn btn-sm" id="btnAggMonthly" onclick="showAggTable('monthly')" style="background:var(--gray);color:#fff">월간</button>
     </div>
     <div id="aggTableArea"></div></div>`;
   t2.innerHTML = t2Html;
@@ -4591,9 +5966,133 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   chartWeekdayScatter(byDate, $('chartProdVsDefect'));
   window._aggData = {daily:byDate, weekly:byWeek, monthly:byMonth, headers:dateHeaders};
   $('aggTableArea').innerHTML = makeTableEnhanced(dateHeaders, byDate, 'tblDate');
+  initSubFilterDates('t2');
   window.showAggTable = function(mode) {
+    window._t2AggMode = mode;
     const d = window._aggData;
     $('aggTableArea').innerHTML = makeTableEnhanced(d.headers, d[mode], 'tblDate');
+    ['Daily','Weekly','Monthly'].forEach(m => {
+      const btn = $('btnAgg' + m);
+      if (!btn) return;
+      if (mode === m.toLowerCase()) { btn.className='btn btn-sm btn-primary'; btn.style.background=''; btn.style.color=''; }
+      else { btn.className='btn btn-sm'; btn.style.background='var(--gray)'; btn.style.color='#fff'; }
+    });
+  };
+
+  // ── 기간 단위 전환 공통 헬퍼 ──
+  function periodLabels(data, mode) {
+    return data.map(r =>
+      mode === 'daily'   ? dateKR(r.생산일자) :
+      mode === 'weekly'  ? r.생산일자 :
+      dateKRMonth(r.생산일자)
+    );
+  }
+  function setPeriodBtns(prefix, mode) {
+    ['Daily','Weekly','Monthly'].forEach(m => {
+      const btn = $('btn' + prefix + m);
+      if (!btn) return;
+      if (mode === m.toLowerCase()) { btn.className='btn btn-sm btn-primary'; btn.style.background=''; btn.style.color=''; }
+      else { btn.className='btn btn-sm'; btn.style.background='var(--gray)'; btn.style.color='#fff'; }
+    });
+  }
+  const periodTitles = { daily:'일별', weekly:'주별', monthly:'월별' };
+
+  window.switchTrendPeriod = function(mode) {
+    window._t2TrendMode = mode;
+    const d = window._aggData;
+    if (!d || !d[mode] || !d[mode].length) return;
+    const data = d[mode];
+    const labels = periodLabels(data, mode);
+    const mb = isMobile();
+    setPeriodBtns('Trend', mode);
+    $('titleDailyTrend').textContent = periodTitles[mode] + ' 생산수량 및 불량률 추이';
+    Plotly.react($('chartDailyTrend'), [
+      { x:labels, y:data.map(r=>r.생산수량), type:'bar', name:'생산수량',
+        marker:{color:'#2563EB',opacity:.75}, yaxis:'y' },
+      { x:labels, y:data.map(r=>r.불량률*100), type:'scatter',
+        mode:'lines+markers'+(mb?'':'+text'), name:'불량률(%)',
+        line:{color:'#DC2626',width:2.5}, marker:{size:mb?6:8},
+        text:data.map(r=>pct(r.불량률*100)), textposition:'top center',
+        textfont:{size:mb?8:10,color:'#DC2626'}, yaxis:'y2' },
+      { x:[labels[0],labels[labels.length-1]], y:[targetDefectRate,targetDefectRate],
+        type:'scatter', mode:'lines',
+        name:'목표 불량률('+targetDefectRate.toFixed(1)+'%)',
+        line:{color:'#16A34A',width:1.5,dash:'dash'}, yaxis:'y2' }
+    ], {
+      yaxis:{title:mb?'':'생산수량'},
+      yaxis2:{title:mb?'':'불량률 (%)',overlaying:'y',side:'right'},
+      legend:{orientation:'h',y:mb?1.15:1.12,font:{size:mb?10:12}},
+      height:chartHeight(420,300), margin:mb?{t:30,b:40,l:40,r:40}:{t:30,b:50,l:60,r:60}
+    }, getPlotCfg());
+  };
+
+  window.switchStackPeriod = function(mode) {
+    const d = window._aggData;
+    if (!d || !d[mode] || !d[mode].length || !defectCols.length) return;
+    const data = d[mode];
+    const labels = periodLabels(data, mode);
+    const mb = isMobile();
+    setPeriodBtns('Stack', mode);
+    $('titleDailyStack').textContent = periodTitles[mode] + ' 불량유형 구성';
+    const active = defectCols.filter(dc => data.some(r => r[dc] > 0));
+    Plotly.react($('chartDailyStack'),
+      active.map((dc,i) => ({
+        x:labels, y:data.map(r=>r[dc]||0), type:'bar', name:dc,
+        marker:{color:PALETTE[i%PALETTE.length]}
+      })),
+      { barmode:'stack',
+        xaxis:{title:mb?'':'생산일자'}, yaxis:{title:mb?'':'불량 건수'},
+        legend:{orientation:'h',y:mb?1.2:1.12,font:{size:mb?9:12}},
+        height:chartHeight(420,300), margin:mb?{t:30,b:40,l:35,r:10}:{t:30,b:50,l:60,r:40}
+      }, getPlotCfg());
+  };
+
+  window.applyT2SubFilter = function() {
+    const start = $('t2SubStart').value, end = $('t2SubEnd').value;
+    if (!start || !end) return;
+    const sub = (window._rawFiltered || []).filter(r => { const d = dateStr(r.생산일자); return d >= start && d <= end; });
+    if (!sub.length) { showToast('해당 기간 데이터가 없습니다.', 'warn', 3000); return; }
+    const bd = aggByDate(sub), bw = aggByWeek(sub), bm = aggByMonth(sub);
+    window._aggData = { ...window._aggData, daily: bd, weekly: bw, monthly: bm };
+    const mode = window._t2TrendMode || 'daily';
+    switchTrendPeriod(mode);
+    if (defectCols.length) switchStackPeriod(mode);
+    chartWeekdayPattern(bd, $('chartWeekday'));
+    chartWeekdayScatter(bd, $('chartProdVsDefect'));
+    showAggTable(window._t2AggMode || 'daily');
+    setSubFilterInfo('t2', sub);
+  };
+  window.resetT2SubFilter = function() {
+    initSubFilterDates('t2');
+    applyT2SubFilter();
+    const el = $('t2SubInfo'); if (el) el.textContent = '';
+  };
+
+  window.switchYieldPeriod = function(mode) {
+    window._t6YieldMode = mode;
+    const d = window._t6Data || window._aggData;
+    if (!d || !d[mode] || !d[mode].length) return;
+    const data = d[mode];
+    const labels = periodLabels(data, mode);
+    const mb = isMobile();
+    setPeriodBtns('Yield', mode);
+    $('titleYieldTrend').textContent = periodTitles[mode] + ' 수율 추이';
+    const yields = data.map(r => r.생산수량 ? r.양품수량/r.생산수량*100 : 0);
+    const yieldMin = yields.length ? Math.min(...yields) : 0;
+    const targetYield = 100 - targetDefectRate;
+    Plotly.react($('chartYieldTrend'), [
+      { x:labels, y:yields, type:'scatter', mode:'lines+markers',
+        name:periodTitles[mode]+' 수율', line:{color:'#16A34A',width:2}, marker:{size:mb?4:6} },
+      { x:[labels[0],labels[labels.length-1]], y:[98,98], type:'scatter', mode:'lines',
+        name:'목표 98%', line:{color:'#DC2626',width:2,dash:'dash'} },
+      { x:[labels[0],labels[labels.length-1]], y:[targetYield,targetYield], type:'scatter', mode:'lines',
+        name:'목표 수율('+targetYield.toFixed(1)+'%)',
+        line:{color:'#16A34A',width:1.5,dash:'dash'} }
+    ], {
+      yaxis:{title:mb?'':'수율 (%)',range:[Math.max(0,Math.min(yieldMin,targetYield)-3),101]},
+      legend:{orientation:'h',y:mb?1.15:1.12,font:{size:mb?10:12}},
+      height:chartHeight(380,280), margin:mb?{t:30,b:40,l:40,r:20}:{t:30,b:50,l:60,r:40}
+    }, getPlotCfg());
   };
 
   // ── 탭3: 품목별 분석 ── (HTML을 먼저 한번에 구성 후 차트 생성)
@@ -4637,12 +6136,12 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   const t4 = $('tab4');
 
   // 자동 요약 텍스트 (상단 배치)
-  const summaryText = `분석 기간 ${byDate.length > 0 ? dateKRFull(byDate[0].생산일자) + ' ~ ' + dateKRFull(byDate[byDate.length-1].생산일자) : ''} 기준, 총 생산수량 ${fmt(kpi.총생산수량)}개 중 불량 ${fmt(kpi.총불량수량)}개 (불량률 ${pct(kpi.불량률)}, PPM ${fmt(Math.round(kpi.PPM))})가 발생하였습니다.${weekChg.변화 !== 0 ? ' 전주 대비 불량률이 ' + pct(Math.abs(weekChg.변화)) + (weekChg.변화 > 0 ? ' 악화' : ' 개선') + '되었습니다.' : ''}${alerts.length > 0 ? ' 불량률 ' + threshold + '% 초과 품목은 ' + alerts.length + '건입니다.' : ''}`;
+  const summaryText = `분석 기간 ${byDate.length > 0 ? dateKRFull(byDate[0].생산일자) + ' ~ ' + dateKRFull(byDate[byDate.length-1].생산일자) : ''} 기준, 총 생산수량 ${fmt(kpi.총생산수량)}개 중 불량 ${fmt(kpi.총불량수량)}개 (불량률 ${pct(kpi.불량률)}, PPM ${fmt(Math.round(kpi.PPM))})가 발생하였습니다.${weekChg.변화 !== 0 ? ' 전주 대비 불량률이 ' + pct(Math.abs(weekChg.변화)) + (weekChg.변화 > 0 ? ' 악화' : ' 개선') + '되었습니다.' : ''}${alerts.length > 0 ? ' 목표 불량률 ' + targetDefectRate.toFixed(1) + '% 초과 품목은 ' + alerts.length + '건입니다.' : ''}`;
   let alertHtml = `<div class="chart-box"><h3>자동 요약</h3><div class="info-box info" style="line-height:1.6">${summaryText}</div></div>`;
 
-  alertHtml += `<div class="chart-box"><h3>불량률 ${threshold}% 초과 품목</h3>`;
+  alertHtml += `<div class="chart-box"><h3>목표 불량률 ${targetDefectRate.toFixed(1)}% 초과 품목</h3>`;
   if (!alerts.length) {
-    alertHtml += `<div class="info-box success">불량률 ${threshold}%를 초과하는 품목이 없습니다.</div>`;
+    alertHtml += `<div class="info-box success">목표 불량률 ${targetDefectRate.toFixed(1)}%를 초과하는 품목이 없습니다.</div>`;
   } else {
     alertHtml += `<div class="info-box warn" style="margin-bottom:12px">초과 품목: ${alerts.length}건</div>`;
     const alertHeaders = ['품명','생산수량','양품수량','불량수량','불량률'];
@@ -4666,28 +6165,13 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
   if ($('btnExportExcel')) $('btnExportExcel').addEventListener('click', () => {
     exportExcel(kpi, byDate, byItem, totals);
   });
-  if ($('btnExportPDF')) $('btnExportPDF').addEventListener('click', () => {
-    exportPDF();
-  });
+  if ($('btnExportPDF')) $('btnExportPDF').addEventListener('click', openPdfModal);
 
   // ── 탭5: p 관리도 (HTML 먼저 구성) ──
   const t5 = $('tab5');
-  const spcTotalBad = byDate.reduce((s,r)=>s+r.불량수량,0);
-  const spcTotalProd = byDate.reduce((s,r)=>s+r.생산수량,0);
-  const spcPbar = spcTotalProd ? spcTotalBad/spcTotalProd : 0;
-  const spcPbarPct = spcPbar * 100;
-  const spcAvgN = byDate.length ? Math.round(spcTotalProd / byDate.length) : 1;
-  const spcUCLavg = (spcPbar + 3*Math.sqrt(spcPbar*(1-spcPbar)/Math.max(spcAvgN,1)))*100;
-  const spcLCLavg = Math.max(0, (spcPbar - 3*Math.sqrt(spcPbar*(1-spcPbar)/Math.max(spcAvgN,1)))*100);
-  const spcOutCount = byDate.filter(r => {
-    const pi = r.불량률*100;
-    const ni = Math.max(r.생산수량, 1);
-    const ucli = (spcPbar + 3*Math.sqrt(spcPbar*(1-spcPbar)/ni))*100;
-    const lcli = Math.max(0,(spcPbar - 3*Math.sqrt(spcPbar*(1-spcPbar)/ni))*100);
-    return pi > ucli || pi < lcli;
-  }).length;
 
-  let t5Html = `<div class="chart-box">
+  let t5Html = makeTabSubFilterHtml('t5', 'applyT5SubFilter', 'resetT5SubFilter')
+    + `<div class="chart-box">
     <h3>p 관리도 (불량률 관리)</h3>
     <p style="font-size:12px;color:var(--text-light);margin-bottom:4px">
       <span style="color:#DC2626;font-weight:700">● 빨간점</span> 관리한계 이탈 &nbsp;|&nbsp;
@@ -4699,33 +6183,81 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
     </p>
     <div id="chartSPC"></div>
   </div>`;
-  t5Html += `<div class="chart-box"><h3>p 관리도 요약</h3>
-    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-      <div class="kpi-card"><div class="value" style="color:var(--primary)">${pct(spcPbarPct)}</div><div class="label">p̄ (중심선)</div></div>
-      <div class="kpi-card"><div class="value" style="color:var(--danger)">${pct(spcUCLavg)}</div><div class="label">UCL (평균 nᵢ 기준)</div></div>
-      <div class="kpi-card"><div class="value" style="color:var(--warning)">${pct(spcLCLavg)}</div><div class="label">LCL (평균 nᵢ 기준)</div></div>
-    </div>
-    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
-      <div class="kpi-card"><div class="value" style="color:var(--gray)">${fmt(spcAvgN)}</div><div class="label">평균 서브그룹 크기</div></div>
-      <div class="kpi-card"><div class="value" style="color:${spcOutCount>0?'var(--danger)':'var(--success)'}">${spcOutCount}건</div><div class="label">관리이탈 횟수</div></div>
-      <div class="kpi-card"><div class="value" style="color:${spcOutCount===0?'var(--success)':'var(--danger)'}">${spcOutCount===0?'안정':'불안정'}</div><div class="label">공정 상태</div></div>
-    </div>
-  </div>`;
+  t5Html += `<div class="chart-box"><h3>p 관리도 요약</h3><div id="spcKpiArea"></div></div>`;
   t5.innerHTML = t5Html;
   chartSPC(byDate, $('chartSPC'));
+  $('spcKpiArea').innerHTML = buildSPCKpiHtml(byDate);
+  initSubFilterDates('t5');
+  window.applyT5SubFilter = function() {
+    const start = $('t5SubStart').value, end = $('t5SubEnd').value;
+    if (!start || !end) return;
+    const sub = (window._rawFiltered || []).filter(r => { const d = dateStr(r.생산일자); return d >= start && d <= end; });
+    if (!sub.length) { showToast('해당 기간 데이터가 없습니다.', 'warn', 3000); return; }
+    const bd = aggByDate(sub);
+    chartSPC(bd, $('chartSPC'));
+    $('spcKpiArea').innerHTML = buildSPCKpiHtml(bd);
+    setSubFilterInfo('t5', sub);
+  };
+  window.resetT5SubFilter = function() {
+    initSubFilterDates('t5');
+    applyT5SubFilter();
+    const el = $('t5SubInfo'); if (el) el.textContent = '';
+  };
 
   // ── 탭6: 수율 분석 (HTML 먼저 구성) ──
   const t6 = $('tab6');
-  t6.innerHTML = '<div class="chart-box"><h3>🎯 수율 목표 달성 현황 (목표: 98%)</h3><div id="yieldTargetArea"></div></div>'
+  t6.innerHTML = makeTabSubFilterHtml('t6', 'applyT6SubFilter', 'resetT6SubFilter')
+    + '<div class="chart-box"><h3>🎯 수율 목표 달성 현황 (목표: 98%)</h3><div id="yieldTargetArea"></div></div>'
     + '<div class="chart-box"><h3>전체 수율 (양품률)</h3><div id="chartYieldGauge"></div></div>'
     + '<div class="chart-box"><h3>📊 수율 구간별 품목 분포</h3><p style="font-size:11px;color:var(--text-light);margin-top:-8px;margin-bottom:4px">품목들의 수율이 어떤 구간에 분포하는지 확인하세요</p><div id="chartYieldDist"></div></div>'
-    + '<div class="chart-box"><h3>일자별 수율 추이</h3><div id="chartYieldTrend"></div></div>'
+    + `<div class="chart-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+          <h3 id="titleYieldTrend" style="margin:0">일별 수율 추이</h3>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-primary" id="btnYieldDaily" onclick="switchYieldPeriod('daily')">일별</button>
+            <button class="btn btn-sm" id="btnYieldWeekly" onclick="switchYieldPeriod('weekly')" style="background:var(--gray);color:#fff">주별</button>
+            <button class="btn btn-sm" id="btnYieldMonthly" onclick="switchYieldPeriod('monthly')" style="background:var(--gray);color:#fff">월별</button>
+          </div>
+        </div>
+        <div id="chartYieldTrend"></div>
+      </div>`
     + '<div class="chart-box"><h3>품목별 수율 하위 20 (목표선: 98%)</h3><div id="chartYieldItem"></div></div>';
   renderYieldTarget(byItem, kpi, $('yieldTargetArea'));
   chartYieldGauge(kpi, $('chartYieldGauge'));
   chartYieldDistribution(byItem, $('chartYieldDist'));
   chartYieldTrend(byDate, $('chartYieldTrend'));
   chartYieldByItem(byItem, $('chartYieldItem'));
+  window._t6Data = { daily: byDate, weekly: byWeek, monthly: byMonth, headers: dateHeaders };
+  initSubFilterDates('t6');
+  window.applyT6SubFilter = function() {
+    const start = $('t6SubStart').value, end = $('t6SubEnd').value;
+    if (!start || !end) return;
+    const sub = (window._rawFiltered || []).filter(r => { const d = dateStr(r.생산일자); return d >= start && d <= end; });
+    if (!sub.length) { showToast('해당 기간 데이터가 없습니다.', 'warn', 3000); return; }
+    const bd = aggByDate(sub), bw = aggByWeek(sub), bm = aggByMonth(sub), bi = aggByItem(sub);
+    const kpiSub = calcKPI(sub);
+    window._t6Data = { ...window._t6Data, daily: bd, weekly: bw, monthly: bm };
+    renderYieldTarget(bi, kpiSub, $('yieldTargetArea'));
+    chartYieldGauge(kpiSub, $('chartYieldGauge'));
+    chartYieldDistribution(bi, $('chartYieldDist'));
+    switchYieldPeriod(window._t6YieldMode || 'daily');
+    chartYieldByItem(bi, $('chartYieldItem'));
+    setSubFilterInfo('t6', sub);
+  };
+  window.resetT6SubFilter = function() {
+    initSubFilterDates('t6');
+    applyT6SubFilter();
+    const el = $('t6SubInfo'); if (el) el.textContent = '';
+  };
+
+  // ── 주별/월별 버튼: 데이터 부족 시 비활성화 ──
+  [['btnTrendWeekly','btnTrendMonthly'],
+   ['btnStackWeekly','btnStackMonthly'],
+   ['btnYieldWeekly','btnYieldMonthly']].forEach(([bwId, bmId]) => {
+    const bw = $(bwId), bm = $(bmId);
+    if (bw && byWeek.length <= 1)  { bw.disabled=true; bw.style.opacity='0.4'; bw.title='2주 이상 데이터 필요'; }
+    if (bm && byMonth.length <= 1) { bm.disabled=true; bm.style.opacity='0.4'; bm.title='2개월 이상 데이터 필요'; }
+  });
 
   // ── 탭7: 기간 비교 ──
   renderPeriodComparison(filtered, $('tab7'));
@@ -4735,6 +6267,21 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
 
   // ── 탭9: AI 품질진단 ──
   renderAIDiagnosis(kpi, byDate, byItem, filtered);
+
+  // ── 탭11: 주간 보고 ──
+  const t11 = $('tab11');
+  t11.innerHTML = `
+    <div class="chart-box" style="padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">주간 품질 경영 보고서</h3>
+        <button class="btn btn-sm btn-primary" onclick="refreshWeeklyReport()">새로고침</button>
+      </div>
+      <div id="weekBtnContainer">${buildWeekBtnsHtml(byWeek, '전체')}</div>
+      <div id="weeklyReportArea">${generateWeeklyReport(kpi, byDate, byItem, byWeek)}</div>
+    </div>`;
+  window._weeklyReportData = {kpi, byDate, byItem, byWeek, byMonth};
+  window._selectedWeek = '전체';
+  requestAnimationFrame(() => renderWeeklyCharts(byWeek, byMonth, '전체'));
 
   // 차트 리사이즈 (초기 렌더 후 + 모바일 지연 대응)
   requestAnimationFrame(() => {
@@ -4759,44 +6306,153 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, threshold, filtere
 /* ================================================================
    PDF 리포트 내보내기
    ================================================================ */
-async function exportPDF() {
-  const btn = $('btnExportPDF');
-  btn.textContent = 'PDF 생성 중...';
-  btn.disabled = true;
+/* ── PDF 내보내기 ── */
+const _PDF_TABS = [
+  { id:'tab1',  icon:'📊', name:'전체 요약' },
+  { id:'tab2',  icon:'📅', name:'일자별 분석' },
+  { id:'tab3',  icon:'📦', name:'품목별 분석' },
+  { id:'tab4',  icon:'🔔', name:'알림 & 리포트' },
+  { id:'tab5',  icon:'📈', name:'SPC 관리도' },
+  { id:'tab6',  icon:'✅', name:'수율 분석' },
+  { id:'tab7',  icon:'🔄', name:'기간 비교' },
+  { id:'tab8',  icon:'🔍', name:'품목 심층분석' },
+  { id:'tab9',  icon:'🤖', name:'AI 품질진단' },
+  { id:'tab11', icon:'📋', name:'주간 보고' },
+];
+
+function openPdfModal() {
+  if (!window._rawFiltered || !window._rawFiltered.length) {
+    showToast('먼저 데이터를 업로드하고 분석을 실행해주세요.', 'warn', 3000); return;
+  }
+  const list = $('pdfTabList');
+  list.innerHTML = _PDF_TABS.map(t =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='#fff'">
+      <input type="checkbox" id="pdfChk_${t.id}" checked style="width:15px;height:15px;cursor:pointer">
+      ${t.icon} ${t.name}
+    </label>`
+  ).join('');
+  $('pdfExportProgress').style.display = 'none';
+  $('btnStartPdfExport').disabled = false;
+  $('btnStartPdfExport').textContent = '📥 내보내기';
+  $('pdfExportModal').style.display = 'flex';
+}
+
+async function startPdfExport() {
+  const selected = _PDF_TABS.filter(t => document.getElementById('pdfChk_' + t.id)?.checked);
+  if (!selected.length) { showToast('탭을 1개 이상 선택하세요.', 'warn', 2000); return; }
+
+  const origTabId = document.querySelector('.tab-content.active')?.id || 'tab1';
+  const progWrap  = $('pdfExportProgress');
+  const progBar   = $('pdfProgressBar');
+  const progText  = $('pdfProgressText');
+  const startBtn  = $('btnStartPdfExport');
+
+  progWrap.style.display = 'block';
+  startBtn.disabled = true;
+  startBtn.textContent = '생성 중...';
+
+  const isDark = document.body.classList.contains('dark');
+  const BG     = isDark ? '#111827' : '#ffffff';
+  const MARGIN = 10;          // mm
+  const PW     = 190;         // A4 printable width mm  (210 - 2×10)
+  const PH     = 272;         // A4 printable height mm (297 - 2×12.5)
+
   try {
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const tabs = ['tab1', 'tab5', 'tab6'];
-    const tabNames = ['전체 요약', 'SPC 관리도', '수율 분석'];
+    const pdf  = new jsPDF('p', 'mm', 'a4');
+    let first  = true;
 
-    for (let i = 0; i < tabs.length; i++) {
-      const tabEl = $(tabs[i]);
-      switchTab(tabs[i]);
+    for (let i = 0; i < selected.length; i++) {
+      const tab = selected[i];
+      const pct = Math.round(i / selected.length * 100);
+      progBar.style.width  = pct + '%';
+      progText.textContent = `(${i + 1}/${selected.length}) ${tab.icon} ${tab.name} 처리 중...`;
+
+      // 탭 전환 후 차트 안정화 대기
+      switchTab(tab.id);
+      await new Promise(r => setTimeout(r, 700));
+      const tabEl = $(tab.id);
+      tabEl.querySelectorAll('.js-plotly-plot').forEach(p => { try { Plotly.Plots.resize(p); } catch(e) {} });
       await new Promise(r => setTimeout(r, 500));
-      tabEl.querySelectorAll('.js-plotly-plot').forEach(p => Plotly.Plots.resize(p));
-      await new Promise(r => setTimeout(r, 300));
 
-      const canvas = await html2canvas(tabEl, { scale: 1.5, useCORS: true, backgroundColor: document.body.classList.contains('dark') ? '#111827' : '#FFFFFF' });
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
-      if (i > 0) pdf.addPage();
-      const pw = pdf.internal.pageSize.getWidth() - 20;
-      const ph = canvas.height * pw / canvas.width;
-      pdf.setFontSize(14);
-      pdf.text(tabNames[i], 10, 12);
-      pdf.addImage(imgData, 'JPEG', 10, 18, pw, Math.min(ph, pdf.internal.pageSize.getHeight() - 25));
+      // 캡처 (scale:2 → 고해상도)
+      const canvas = await html2canvas(tabEl, {
+        scale: 2, useCORS: true, backgroundColor: BG,
+        logging: false, allowTaint: true
+      });
+
+      // 자동 배율: 가로를 A4 폭에 맞추고, 필요하면 여러 페이지로 분할
+      const mmPerPx = PW / canvas.width;   // mm per canvas pixel
+      const imgH_mm = canvas.height * mmPerPx;
+
+      if (!first) pdf.addPage();
+      first = false;
+
+      // 탭 헤더
+      pdf.setFontSize(10);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`남도금속 품질경영 · ${tab.icon} ${tab.name}`, MARGIN, MARGIN - 1);
+      pdf.setDrawColor(180, 180, 180);
+      pdf.line(MARGIN, MARGIN + 0.5, 200, MARGIN + 0.5);
+
+      const contentTop = MARGIN + 4;
+      const pageContentH = PH - 4;   // 헤더 공간 제외
+
+      if (imgH_mm <= pageContentH) {
+        // 한 페이지에 들어가는 경우: 배율 그대로
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG',
+          MARGIN, contentTop, PW, imgH_mm);
+      } else {
+        // 콘텐츠가 넘치는 경우: 세로를 잘라 여러 페이지에 분배
+        const pageHeightPx = Math.floor(pageContentH / mmPerPx);
+        let sliceY = 0;
+        let pageNum = 0;
+        while (sliceY < canvas.height) {
+          if (pageNum > 0) {
+            pdf.addPage();
+            pdf.setFontSize(9);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text(`${tab.name} (${pageNum + 1}페이지)`, MARGIN, MARGIN - 1);
+          }
+          const sliceH = Math.min(pageHeightPx, canvas.height - sliceY);
+          const slice  = document.createElement('canvas');
+          slice.width  = canvas.width;
+          slice.height = sliceH;
+          slice.getContext('2d').drawImage(canvas,
+            0, sliceY, canvas.width, sliceH,
+            0, 0,      canvas.width, sliceH);
+          const sliceH_mm = sliceH * mmPerPx;
+          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG',
+            MARGIN, pageNum === 0 ? contentTop : MARGIN,
+            PW, sliceH_mm);
+          sliceY  += pageHeightPx;
+          pageNum++;
+        }
+      }
     }
 
-    // 첫 탭으로 복귀
-    switchTab('tab1');
+    // 원래 탭으로 복귀
+    switchTab(origTabId);
 
-    pdf.save('생산현황_분석_리포트.pdf');
+    const now = new Date();
+    const ds  = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    pdf.save(`남도금속_품질경영_${ds}.pdf`);
+
+    progBar.style.width  = '100%';
+    progText.textContent = '✅ PDF 저장 완료!';
+    showToast('PDF 저장 완료', 'success', 3000);
+    setTimeout(() => { $('pdfExportModal').style.display = 'none'; }, 1800);
   } catch (e) {
-    showToast('PDF 생성 중 오류: ' + e.message, 'error');
+    showToast('PDF 생성 오류: ' + e.message, 'error', 5000);
+    console.error(e);
   } finally {
-    btn.textContent = 'PDF 리포트 다운로드';
-    btn.disabled = false;
+    startBtn.disabled    = false;
+    startBtn.textContent = '📥 내보내기';
   }
 }
+
+// 기존 호환용 alias
+function exportPDF() { openPdfModal(); }
 
 let resizeTimer;
 window.addEventListener('resize', () => {
@@ -4879,7 +6535,8 @@ window.addEventListener('resize', () => {
     }
 
     // 대시보드 렌더링
-    renderDashboard(d.kpi, d.byDate, d.byItem, d.totals, d.alerts, d.threshold, filteredData);
+    const restoredAlerts = (d.byItem || []).filter(r => r.불량률 > targetDefectRate/100).sort((a,b) => b.불량률 - a.불량률);
+    renderDashboard(d.kpi, d.byDate, d.byItem, d.totals, restoredAlerts, filteredData);
 
     // 안내 메시지
     const notice = document.createElement('div');
