@@ -1695,6 +1695,14 @@ function weekLabel(isoStr) {
   return mon.getFullYear() + '년 ' + (mon.getMonth()+1) + '/' + mon.getDate() + ' 주';
 }
 
+function weekStartISO(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00');
+  const dow = (d.getDay() + 6) % 7; // 0=월 ~ 6=일
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - dow); // 해당 주 월요일
+  return dateStr(mon);
+}
+
 function toDate(v) {
   if (v instanceof Date) return v;
   if (typeof v === 'number') return new Date((v - 25569) * 86400000);
@@ -3041,12 +3049,17 @@ function calcWeekChange(data) {
 function aggByWeek(data) {
   const map = new Map();
   for (const r of data) {
-    const key = weekLabel(dateStr(r.생산일자));
-    if (!map.has(key)) { const o={생산일자:key,생산수량:0,양품수량:0,불량수량:0}; for(const dc of defectCols) o[dc]=0; map.set(key,o); }
-    const o=map.get(key); o.생산수량+=r.생산수량; o.양품수량+=r.양품수량; o.불량수량+=r.불량수량;
+    const iso = dateStr(r.생산일자);
+    const weekKey = weekStartISO(iso);
+    if (!map.has(weekKey)) {
+      const o = { 생산일자: weekLabel(iso), 주차키: weekKey, 생산수량: 0, 양품수량: 0, 불량수량: 0 };
+      for (const dc of defectCols) o[dc] = 0;
+      map.set(weekKey, o);
+    }
+    const o=map.get(weekKey); o.생산수량+=r.생산수량; o.양품수량+=r.양품수량; o.불량수량+=r.불량수량;
     for(const dc of defectCols) o[dc]+=r[dc];
   }
-  const arr=[...map.values()];
+  const arr=[...map.values()].sort((a,b)=>a.주차키.localeCompare(b.주차키));
   arr.forEach(o=>{
     o.불량률 = calcDefectRate(o.불량수량, o.생산수량);
     o.PPM = calcPPM(o.불량수량, o.생산수량);
@@ -5760,7 +5773,12 @@ function selectWeekReport(wLabel) {
     renderWeeklyCharts(d.byWeek, d.byMonth || [], '전체');
     return;
   }
-  const sub = (window._rawFiltered || []).filter(r => weekLabel(dateStr(r.생산일자)) === wLabel);
+  const selectedWeek = d.byWeek.find(w => w.생산일자 === wLabel);
+  if (!selectedWeek) { showToast('해당 주 데이터가 없습니다.', 'warn', 3000); return; }
+  const sub = (window._rawFiltered || []).filter(r => {
+    if (selectedWeek.주차키) return weekStartISO(dateStr(r.생산일자)) === selectedWeek.주차키;
+    return weekLabel(dateStr(r.생산일자)) === wLabel;
+  });
   if (!sub.length) { showToast('해당 주 데이터가 없습니다.', 'warn', 3000); return; }
   const kpiW    = calcKPI(sub);
   const byDateW = aggByDate(sub);
