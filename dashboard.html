@@ -12,6 +12,7 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 <style>
 :root {
   --primary: #2563EB;
@@ -1217,6 +1218,48 @@ kbd {
   margin-top:4px;
 }
 #btnShareUrl:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
+#btnQrShare {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 10px; border:1px solid var(--border);
+  border-radius:8px; background:var(--bg);
+  font-size:11px; cursor:pointer; color:var(--text-light);
+  margin-top:4px; margin-left:4px;
+}
+#btnQrShare:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+/* QR 공유 모달 + 키오스크 */
+body.kiosk-mode .sidebar { display: none !important; }
+body.kiosk-mode .menu-toggle { display: none !important; }
+body.kiosk-mode .dark-toggle { display: none !important; }
+body.kiosk-mode #memoFab { display: none !important; }
+body.kiosk-mode .header-share-btns { display: none !important; }
+body.kiosk-mode .main { margin-left: 0; max-width: 100%; }
+#qrShareModal { display:none; position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.55);
+  align-items:center; justify-content:center; }
+#qrShareModal.open { display:flex; }
+.qr-share-panel {
+  background:var(--card); border:1px solid var(--border); border-radius:14px;
+  width: min(420px, 92vw); max-height: 88vh; overflow-y: auto; padding: 22px 22px 18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.qr-share-panel h3 { font-size:17px; margin-bottom:6px; color:var(--text); }
+.qr-share-panel .qr-sub { font-size:12px; color:var(--text-light); margin-bottom:14px; line-height:1.4; }
+.qr-share-panel label.qr-cb { display:flex; align-items:center; gap:8px; font-size:13px; margin:8px 0; cursor:pointer; }
+.qr-share-panel input[type=url] {
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+  font-size:13px; background:var(--card); color:var(--text); min-height:44px;
+  margin-top:4px;
+}
+#qrCanvasWrap {
+  display:flex; justify-content:center; align-items:center; min-height:200px; margin:14px 0;
+  background:var(--bg); border:1px dashed var(--border); border-radius:10px; padding:12px;
+}
+#qrUrlPreview {
+  display:block; width:100%; font-size:11px; color:var(--text-light); word-break:break-all;
+  line-height:1.45; margin-top:6px; padding:8px; background:var(--bg); border-radius:6px; border:1px solid var(--border);
+  font-family:ui-monospace,monospace; max-height:72px; overflow-y:auto;
+}
+#qrFileWarn { font-size:12px; color:var(--warning); margin-top:6px; display:none; }
 
 /* ══════════════════════════════════════
    A-08: 메모 패널
@@ -1290,6 +1333,34 @@ tr.pinned-row td { background:rgba(37,99,235,.08) !important; }
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button onclick="$('pdfExportModal').style.display='none'" style="padding:9px 18px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;cursor:pointer;font-size:14px">취소</button>
       <button id="btnStartPdfExport" onclick="startPdfExport()" style="padding:9px 22px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:14px;font-weight:700">📥 내보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR 코드 공유 -->
+<div id="qrShareModal" role="dialog" aria-modal="true" aria-labelledby="qrShareTitle">
+  <div class="qr-share-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div>
+        <h3 id="qrShareTitle">📱 QR로 대시보드 공유</h3>
+        <p class="qr-sub">스캔 시 아래 URL로 이동합니다. 전시·인쇄용으로 PNG를 저장할 수 있습니다.</p>
+      </div>
+      <button type="button" onclick="closeQrShareModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-light);line-height:1" aria-label="닫기">✕</button>
+    </div>
+    <label class="info-box info" style="display:block;font-size:12px;margin-bottom:8px">공개 페이지 주소 (배포 URL)</label>
+    <input type="url" id="qrBaseUrlInput" placeholder="https://example.com/quality/dashboard.html" autocomplete="off" />
+    <p id="qrFileWarn">로컬(file://)로 열려 있으면 휴대폰에서 열리지 않습니다. HTTPS 배포 주소를 입력하세요.</p>
+    <label class="qr-cb"><input type="checkbox" id="qrOptState" checked onchange="if($('qrShareModal')&&$('qrShareModal').classList.contains('open'))redrawQrCode()"> 현재 필터·탭·목표불량률 반영 (URL 공유와 동일)</label>
+    <label class="qr-cb"><input type="checkbox" id="qrOptKiosk" onchange="if($('qrShareModal')&&$('qrShareModal').classList.contains('open'))redrawQrCode()"> 키오스크(전시)용 링크 (메뉴·사이드바 최소화)</label>
+    <div id="qrCanvasWrap">
+      <div id="qrCodeMount" style="min-width:220px;min-height:220px"></div>
+    </div>
+    <p id="qrUrlPreview" title="최종 링크"></p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button type="button" class="btn btn-sm" style="background:var(--gray);color:#fff" onclick="closeQrShareModal()">닫기</button>
+      <button type="button" class="btn btn-sm" style="background:var(--border);color:var(--text)" onclick="copyQrTextUrl()">URL 복사</button>
+      <button type="button" class="btn btn-sm btn-primary" onclick="redrawQrCode()">QR 갱신</button>
+      <button type="button" class="btn btn-sm btn-success" onclick="downloadQrPng()">PNG 저장</button>
     </div>
   </div>
 </div>
@@ -1386,7 +1457,10 @@ tr.pinned-row td { background:rgba(37,99,235,.08) !important; }
     <div class="header-info">
       <div class="header-author">품질분석 담당 김준희 차장</div>
       <div id="lastAnalysisDate"></div>
-      <button id="btnShareUrl" onclick="showShareUrl()" title="현재 필터 상태를 URL로 공유">🔗 URL 공유</button>
+      <div class="header-share-btns">
+        <button type="button" id="btnShareUrl" onclick="showShareUrl()" title="현재 필터 상태를 URL로 공유">🔗 URL 공유</button>
+        <button type="button" id="btnQrShare" onclick="openQrShareModal()" title="QR 코드로 품질 대시보드 링크 공유">📱 QR</button>
+      </div>
     </div>
   </div>
 
@@ -7895,19 +7969,62 @@ document.addEventListener('keydown', function(e) {
 });
 
 /* ────────────────────────────────────────────────
-   A-07: URL 공유 (필터 상태 인코딩)
+   A-07: URL 공유 (필터 상태 인코딩) + QR
    ──────────────────────────────────────────────── */
-function showShareUrl() {
-  const start  = ($('filterStart')  || {}).value || '';
-  const end    = ($('filterEnd')    || {}).value || '';
-  const target = ($('targetDefectRate') || {}).value || '';
-  const activeTab = (document.querySelector('.tab-btn.active') || {}).dataset?.tab || 'tab1';
+const NDM_QR_BASE_KEY = 'ndm_qr_base_url';
+let _lastBuiltQrUrl = '';
+
+function getDefaultPageBase() {
+  return location.href.split('?')[0].split('#')[0].replace(/\/$/, '');
+}
+
+function getShareableBaseForQr() {
+  try {
+    const s = (localStorage.getItem(NDM_QR_BASE_KEY) || '').trim();
+    if (s) {
+      return s.split('?')[0].split('#')[0].replace(/\/$/, '');
+    }
+  } catch (e) {}
+  return getDefaultPageBase();
+}
+
+function getActiveShareParams(includeState) {
   const params = new URLSearchParams();
-  if (start)  params.set('start', start);
-  if (end)    params.set('end', end);
-  if (target) params.set('target', target);
-  params.set('tab', activeTab);
-  const url = location.href.split('?')[0] + '?' + params.toString();
+  if (includeState) {
+    const start  = ($('filterStart')  || {}).value || '';
+    const end    = ($('filterEnd')    || {}).value || '';
+    const target = ($('targetDefectRate') || {}).value || '';
+    const activeTab = (document.querySelector('.tab-btn.active') || {}).dataset?.tab || 'tab1';
+    if (start)  params.set('start', start);
+    if (end)    params.set('end', end);
+    if (target) params.set('target', target);
+    params.set('tab', activeTab);
+  } else {
+    params.set('tab', 'tab1');
+  }
+  return params;
+}
+
+function buildShareUrlString(opts) {
+  opts = Object.assign({ includeState: true, includeKiosk: false, baseUrl: null }, opts);
+  let base = opts.baseUrl;
+  if (base == null || String(base).trim() === '') {
+    base = getShareableBaseForQr();
+  } else {
+    base = String(base).trim();
+  }
+  base = base.split('?')[0].split('#')[0].replace(/\/$/, '');
+  if (!base) base = getDefaultPageBase();
+  const params = getActiveShareParams(opts.includeState);
+  if (opts.includeKiosk) params.set('kiosk', '1');
+  const q = params.toString();
+  return q ? base + '?' + q : base;
+}
+
+function showShareUrl() {
+  const base = getDefaultPageBase();
+  const params = getActiveShareParams(true);
+  const url = params.toString() ? base + '?' + params.toString() : base;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => {
       showToast('🔗 공유 URL이 클립보드에 복사되었습니다!', 'success', 4000);
@@ -7915,6 +8032,134 @@ function showShareUrl() {
   } else {
     fallbackCopyUrl(url);
   }
+}
+
+function openQrShareModal() {
+  const modal = $('qrShareModal');
+  const input = $('qrBaseUrlInput');
+  const fWarn = $('qrFileWarn');
+  if (!modal || !input) return;
+  input.value = getShareableBaseForQr() || getDefaultPageBase();
+  if ($('qrOptState')) $('qrOptState').checked = true;
+  if ($('qrOptKiosk')) $('qrOptKiosk').checked = false;
+  if (fWarn) fWarn.style.display = location.protocol === 'file:' ? 'block' : 'none';
+  modal.classList.add('open');
+  setTimeout(function() { try { input.focus(); } catch (e) {} redrawQrCode(); }, 0);
+}
+
+function closeQrShareModal() {
+  const modal = $('qrShareModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function persistQrBaseFromInput() {
+  const input = $('qrBaseUrlInput');
+  if (!input) return;
+  const v = (input.value || '').trim();
+  if (!v) {
+    try { localStorage.removeItem(NDM_QR_BASE_KEY); } catch (e) {}
+    return;
+  }
+  try {
+    new URL(v);
+    try { localStorage.setItem(NDM_QR_BASE_KEY, v); } catch (e) {}
+  } catch (e) {
+    showToast('URL 형식을 확인해 주세요.', 'warn', 2500);
+  }
+}
+
+function redrawQrCode() {
+  const input = $('qrBaseUrlInput');
+  const cState = ($('qrOptState') || {}).checked !== false;
+  const cKiosk = ($('qrOptKiosk') || {}).checked === true;
+  if (input) {
+    const raw = (input.value || '').trim();
+    if (raw) {
+      try { new URL(raw); } catch (e) {
+        showToast('배포 URL이 올바른지 확인해 주세요.', 'warn', 3000);
+        return;
+      }
+    }
+  }
+  persistQrBaseFromInput();
+  const url = buildShareUrlString({
+    includeState: cState,
+    includeKiosk: cKiosk,
+    baseUrl: (input && input.value) ? input.value.trim() : null
+  });
+  _lastBuiltQrUrl = url;
+  const prev = $('qrUrlPreview');
+  if (prev) prev.textContent = url;
+  if (typeof QRCode === 'undefined') {
+    showToast('QR 라이브러리를 불러오지 못했습니다. 네트워크를 확인해 주세요.', 'error', 5000);
+    return;
+  }
+  const mount = $('qrCodeMount');
+  if (!mount) return;
+  mount.innerHTML = '';
+  try {
+    const qrOpts = {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#0f172a',
+      colorLight: '#ffffff'
+    };
+    if (QRCode.CorrectLevel) qrOpts.correctLevel = QRCode.CorrectLevel.M;
+    new QRCode(mount, qrOpts);
+  } catch (e) {
+    console.error(e);
+    showToast('QR 생성에 실패했습니다.', 'error', 3000);
+  }
+}
+
+function copyQrTextUrl() {
+  if (!_lastBuiltQrUrl) redrawQrCode();
+  const t = _lastBuiltQrUrl || ( $('qrUrlPreview') || {} ).textContent || '';
+  if (!t) { showToast('먼저 QR 갱신을 눌러 주세요.', 'warn', 2000); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function() { showToast('URL이 복사되었습니다.', 'success'); })
+      .catch(function() { fallbackCopyUrl(t); });
+  } else { fallbackCopyUrl(t); }
+}
+
+function downloadQrPng() {
+  if (!_lastBuiltQrUrl) redrawQrCode();
+  const mount = $('qrCodeMount');
+  if (!mount) return;
+  const canvas = mount.querySelector('canvas');
+  const img = mount.querySelector('img');
+  var dataUrl = null;
+  try {
+    if (canvas && canvas.toDataURL) dataUrl = canvas.toDataURL('image/png');
+    else if (img && img.src) dataUrl = img.src;
+  } catch (e) {}
+  if (!dataUrl) {
+    showToast('QR을 먼저 갱신한 뒤 다시 시도해 주세요.', 'warn', 2500);
+    return;
+  }
+  try {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'namdogeum-quality-qr.png';
+    a.click();
+    showToast('PNG 저장을 시작합니다.', 'success', 2000);
+  } catch (e) {
+    showToast('이미지 저장에 실패했습니다.', 'error', 2000);
+  }
+}
+
+if (typeof document !== 'undefined' && document.getElementById) {
+  const qm = document.getElementById('qrShareModal');
+  if (qm) {
+    qm.addEventListener('click', function(e) { if (e.target === qm) closeQrShareModal(); });
+  }
+  const qi = document.getElementById('qrBaseUrlInput');
+  if (qi) qi.addEventListener('change', function() { persistQrBaseFromInput(); });
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    if ($('qrShareModal') && $('qrShareModal').classList.contains('open')) closeQrShareModal();
+  });
 }
 
 function fallbackCopyUrl(url) {
@@ -7929,6 +8174,9 @@ function fallbackCopyUrl(url) {
 // 페이지 로드 시 URL 파라미터 복원
 (function applyUrlParams() {
   const params = new URLSearchParams(location.search);
+  if (params.get('kiosk') === '1') {
+    try { document.body.classList.add('kiosk-mode'); } catch (e) {}
+  }
   const start  = params.get('start');
   const end    = params.get('end');
   const target = params.get('target');
