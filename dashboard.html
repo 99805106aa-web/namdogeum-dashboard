@@ -1479,6 +1479,7 @@ tr.pinned-row td { background:rgba(37,99,235,.08) !important; }
   </div>
 
   <div id="dashboard" style="display:none">
+    <div id="dataSourceBanner" class="info-box info" style="display:none;margin-bottom:12px"></div>
     <!-- PC 탭바 -->
     <div class="tabs" id="tabsBar">
       <button class="tab-btn active" data-tab="tab1">전체 요약</button>
@@ -1591,6 +1592,14 @@ let cleanedData = [];
 let defectCols = [];
 let selectedFilterItems = new Set();
 let uploadedFiles = []; // 다중 파일 관리
+let dataSource = {
+  kind: null,
+  files: [],
+  rowCount: 0,
+  dateFrom: '',
+  dateTo: '',
+  loadedAt: null
+};
 
 const isMobile = () => window.innerWidth <= 768;
 
@@ -1602,6 +1611,47 @@ const fmt = n => Number(n).toLocaleString('ko-KR');
 const pct = (n, d=2) => Number(n).toFixed(d) + '%';
 const calcDefectRate = (bad, prod) => prod > 0 ? bad / prod : 0;
 const calcPPM = (bad, prod) => calcDefectRate(bad, prod) * 1000000;
+
+function dataSourceKindLabel() {
+  if (dataSource.kind === 'github') return 'GitHub data.xlsx';
+  if (dataSource.kind === 'upload') {
+    const names = (dataSource.files || []).filter(Boolean).join(', ');
+    return names ? ('업로드 ' + names) : '업로드 파일';
+  }
+  if (dataSource.kind === 'restore') return '이 기기 저장(복원)';
+  return '미확인';
+}
+
+function refreshDataSourceMeta() {
+  const rows = cleanedData || [];
+  const dates = rows.map(r => dateStr(r.생산일자)).filter(Boolean).sort();
+  dataSource.rowCount = rows.length;
+  dataSource.dateFrom = dates[0] || '';
+  dataSource.dateTo = dates[dates.length - 1] || '';
+  dataSource.loadedAt = new Date().toISOString();
+}
+
+function formatDataSourceLine() {
+  const range = (dataSource.dateFrom && dataSource.dateTo)
+    ? (dataSource.dateFrom + ' ~ ' + dataSource.dateTo) : '-';
+  return '출처: ' + dataSourceKindLabel() + ' | ' + range + ' | ' + fmt(dataSource.rowCount) + '건';
+}
+
+function updateDataSourceBanner() {
+  const line = formatDataSourceLine();
+  const header = $('lastAnalysisDate');
+  if (header) header.textContent = line;
+  const el = $('dataSourceBanner');
+  if (!el) return;
+  if (!dataSource.kind) {
+    el.style.display = 'none';
+    return;
+  }
+  el.className = 'info-box ' + (dataSource.kind === 'upload' ? 'success' : 'info');
+  el.style.display = 'block';
+  el.style.marginBottom = '12px';
+  el.textContent = line;
+}
 
 const TARGET_DEFECT_RATE_KEY = 'ndm_targetDefectRate';
 const DEFAULT_TARGET_DEFECT_RATE = 0.8;
@@ -1922,26 +1972,82 @@ fileInput.addEventListener('change', e => {
 });
 
 function handleFiles(files) {
-  // 기존 차트 메모리 정리
   document.querySelectorAll('#dashboard .js-plotly-plot').forEach(p => {
     try { Plotly.purge(p); } catch(e) {}
   });
-  // 대시보드 초기화
   $('dashboard').style.display = 'none';
   $('placeholder').style.display = '';
   const fileArr = Array.from(files);
   uploadedFiles = uploadedFiles.concat(fileArr);
-  let tagsHtml = uploadedFiles.map(f => `<span class="file-tag">${f.name} (${(f.size/1024).toFixed(1)}KB)</span>`).join('');
-  fileDrop.innerHTML = `<div style="color:var(--primary);font-weight:600;font-size:13px">${uploadedFiles.length}개 파일 업로드됨</div><div class="file-list">${tagsHtml}</div>`;
-  // 마지막 파일의 workbook 사용 (시트 선택용)
-  const lastFile = fileArr[fileArr.length - 1];
-  const reader = new FileReader();
-  reader.onload = e => {
-    const data = new Uint8Array(e.target.result);
-    workbook = XLSX.read(data, { type: 'array', cellDates: true });
-    populateSheets();
-  };
-  reader.readAsArrayBuffer(lastFile);
+  dataSource.kind = 'upload';
+  dataSource.files = uploadedFiles.map(f => f.name);
+  try { localStorage.setItem('ndm_lastFilename', dataSource.files.join(', ')); } catch (e) {}
+
+  if (uploadedFiles.length <= 1) {
+    const lastFile = fileArr[fileArr.length - 1];
+    updateFileDropStatus();
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = new Uint8Array(e.target.result);
+      workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      populateSheets();
+    };
+    reader.readAsArrayBuffer(lastFile);
+    return;
+  }
+
+  $('sheetArea').style.display = 'none';
+  updateFileDropStatus('읽는 중...');
+  Promise.all(uploadedFiles.map(readExcelFile)).then(workbooks => {
+    const merged = [];
+    const colSet = [];
+    workbooks.forEach(wb => {
+      if (!wb) return;
+      const sheetName = pickRichestSheet(wb);
+      const parsed = parseWorksheetToObjects(wb.Sheets[sheetName]);
+      parsed.rawData.forEach(row => merged.push(row));
+      parsed.columns.forEach(c => { if (colSet.indexOf(c) < 0) colSet.push(c); });
+    });
+    workbook = workbooks[workbooks.length - 1] || null;
+    rawData = merged;
+    columns = colSet;
+    updateFileDropStatus();
+    autoDetectMapping();
+  }).catch(err => {
+    showToast('엑셀을 읽는 중 오류가 발생했습니다: ' + (err && err.message ? err.message : err), 'error', 5000);
+  });
+}
+
+function readExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        resolve(XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true }));
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error(file.name + ' 읽기 실패'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function pickRichestSheet(wb) {
+  let best = wb.SheetNames[0];
+  let bestN = 0;
+  wb.SheetNames.forEach(name => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null });
+    if (rows.length > bestN) { bestN = rows.length; best = name; }
+  });
+  return best;
+}
+
+function updateFileDropStatus(extra) {
+  const n = uploadedFiles.length;
+  const tagsHtml = uploadedFiles.map(f => `<span class="file-tag">${f.name} (${(f.size/1024).toFixed(1)}KB)</span>`).join('');
+  const title = n > 1
+    ? `${n}개 파일 병합됨${extra ? ' — ' + extra : ''}`
+    : (n === 1 ? `1개 파일 업로드됨` : '파일 없음');
+  fileDrop.innerHTML = `<div style="color:var(--primary);font-weight:600;font-size:13px">${title}</div><div class="file-list">${tagsHtml}</div>`;
 }
 
 function handleFile(file) { handleFiles([file]); }
@@ -1963,11 +2069,8 @@ function populateSheets() {
 /* ================================================================
    시트 로딩 + 헤더 감지
    ================================================================ */
-function loadSheet() {
-  const name = $('sheetSelect').value;
-  const ws = workbook.Sheets[name];
+function parseWorksheetToObjects(ws) {
   const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false, dateNF: 'yyyy-mm-dd' });
-
   let bestRow = 0, bestCount = 0;
   for (let i = 0; i < Math.min(10, allRows.length); i++) {
     const row = allRows[i] || [];
@@ -1977,23 +2080,20 @@ function loadSheet() {
     }
     if (strCount > bestCount) { bestCount = strCount; bestRow = i; }
   }
-
   const headerRow = allRows[bestRow] || [];
-  columns = headerRow.map((v, i) => {
+  const rawCols = headerRow.map((v, i) => {
     const s = v != null ? String(v).trim() : '';
     return s || `Column_${i}`;
   });
-
   const validIdx = [];
   const validCols = [];
-  columns.forEach((c, i) => {
+  rawCols.forEach((c, i) => {
     if (c && !c.match(/^Column_\d+$/) && c.trim()) {
       validIdx.push(i);
       validCols.push(c);
     }
   });
-
-  rawData = [];
+  const rows = [];
   for (let r = bestRow + 1; r < allRows.length; r++) {
     const row = allRows[r];
     if (!row) continue;
@@ -2003,10 +2103,17 @@ function loadSheet() {
       obj[validCols[j]] = row[ci] != null ? row[ci] : null;
       if (row[ci] != null && String(row[ci]).trim() !== '') hasVal = true;
     });
-    if (hasVal) rawData.push(obj);
+    if (hasVal) rows.push(obj);
   }
-  columns = validCols;
+  return { columns: validCols, rawData: rows };
+}
 
+function loadSheet() {
+  const name = $('sheetSelect').value;
+  const ws = workbook.Sheets[name];
+  const parsed = parseWorksheetToObjects(ws);
+  columns = parsed.columns;
+  rawData = parsed.rawData;
   autoDetectMapping();
 }
 
@@ -2167,6 +2274,18 @@ function cleanData(data) {
     result.push(obj);
   }
   return result;
+}
+
+function dedupeCleanedRows(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const r of rows) {
+    const key = [dateStr(r.생산일자), r.품명, r.생산수량, r.불량수량].join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
 }
 
 /* ================================================================
@@ -2894,12 +3013,7 @@ function runAnalysis() {
       return;
     }
 
-    if (uploadedFiles.length > 1) {
-      let allRaw = [...rawData];
-      rawData = allRaw;
-    }
-
-    cleanedData = cleanData(rawData);
+    cleanedData = dedupeCleanedRows(cleanData(rawData));
   }
 
   // cleanedData가 없으면 (파일도 없고 저장 데이터도 없음)
@@ -2907,6 +3021,8 @@ function runAnalysis() {
     showToast('분석할 데이터가 없습니다. 엑셀 파일을 업로드해주세요.', 'error', 5000);
     return;
   }
+
+  refreshDataSourceMeta();
 
   // 로딩 표시 후 분석 실행 (UI 업데이트를 위해 비동기)
   showLoading('데이터 분석 중...');
@@ -3012,7 +3128,8 @@ function applyFilterAndRender() {
       kpi, byDate, byItem, totals, alerts,
       filtered: filtered,
       defectColsSaved: defectCols,
-      filterStart: start, filterEnd: end
+      filterStart: start, filterEnd: end,
+      dataSource: dataSource
     };
     localStorage.setItem('ndm_lastAnalysis', JSON.stringify(saveData));
   } catch(e) {
@@ -3022,7 +3139,8 @@ function applyFilterAndRender() {
         timestamp: new Date().toISOString(),
         kpi, byDate, byItem, totals, alerts,
         defectColsSaved: defectCols,
-        filterStart: start, filterEnd: end
+        filterStart: start, filterEnd: end,
+        dataSource: dataSource
       };
       localStorage.setItem('ndm_lastAnalysis', JSON.stringify(saveData));
     } catch(e2) { /* 그래도 실패하면 무시 */ }
@@ -5040,6 +5158,7 @@ function generateWeeklyReport(kpi, byDate, byItem, byWeek) {
 
   // ── 전 탭 분석 데이터 통합 계산 ──
   const spc = calcSPCSummary(byDate);
+  const binCap = calcBinomialCapability(byDate, tgtRate);
   const yld = calcYieldSummary(byDate, byItem);
   const _fl = window._rawFiltered || [];
   const _tr = typeof analyzeTrends      === 'function' ? analyzeTrends(byDate, _fl)                              : { direction: '안정', weekChange: 0, consecutiveWorsen: 0, consecutiveImprove: 0 };
@@ -5534,6 +5653,7 @@ function generateWeeklyReport(kpi, byDate, byItem, byWeek) {
         ${spc.outCount > 0
           ? `<div style="font-size:11px;color:#DC2626;background:#FEE2E2;border-radius:6px;padding:6px 10px">⚠️ 관리한계 이탈 ${spc.outCount}건 — 이탈 일자 공정 변수 확인 필요</div>`
           : `<div style="font-size:11px;color:#15803D;background:#D1FAE5;border-radius:6px;padding:6px 10px">✓ 분석 기간 내 UCL/LCL 이탈 없음</div>`}
+        <div style="font-size:11px;color:var(--text);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">이항 공정능력: 불량률 ${binCap.pPct.toFixed(2)}% · PPM ${fmt(Math.round(binCap.ppm))} · Z.Bench ${formatZBench(binCap.zBench)} (${binCap.met ? '목표 달성' : '목표 미달'})</div>
       </div>
       <!-- 수율 -->
       <div style="background:var(--white);border:1px solid ${yld.isOk?'#D1FAE5':'#EDE9FE'};border-radius:10px;padding:16px">
@@ -5621,6 +5741,7 @@ ${execInsights.map((ins,i)=>`${i+1}. ${ins.replace(/<[^>]+>/g,'')}`).join('\n')}
 ${top3.map((r,i)=>`${i+1}. ${r.품명} - 불량률 ${pct(r.불량률*100)}, PPM ${fmt(Math.round(r.PPM))}`).join('\n')}
 
 [SPC 공정 안정성] ${spc.isStable?'안정':'불안정'} — p̄ ${spc.pbarPct.toFixed(2)}%, UCL 이탈 ${spc.outCount}건
+[이항 공정능력] 불량률 ${binCap.pPct.toFixed(2)}%, PPM ${fmt(Math.round(binCap.ppm))}, Z.Bench ${formatZBench(binCap.zBench)}
 [수율 분석] ${yld.yieldPct.toFixed(2)}% — 목표(98%) ${yld.isOk?'달성':'미달'}
 ${aiScore?`[AI 품질진단] ${aiScore.score}점 · ${aiScore.letterGrade}등급 — ${aiScore.verdict}`:''}
 
@@ -5711,6 +5832,51 @@ function calcSPCSummary(bd) {
     return pi > ucli || pi < lcli;
   }).length;
   return { pbarPct: pbar * 100, UCL, LCL, outCount, isStable: outCount === 0 };
+}
+
+function calcBinomialCapability(bd, uslPct) {
+  if (uslPct == null || !Number.isFinite(Number(uslPct))) uslPct = targetDefectRate;
+  const rows = bd || [];
+  const totalBad  = rows.reduce((s, r) => s + (r.불량수량 || 0), 0);
+  const totalProd = rows.reduce((s, r) => s + (r.생산수량 || 0), 0);
+  const p = totalProd > 0 ? totalBad / totalProd : 0;
+  const ppm = p * 1000000;
+  const usl = uslPct / 100;
+  const nBar = rows.length ? totalProd / rows.length : 0;
+  const sigma = (nBar > 0 && p > 0 && p < 1) ? Math.sqrt(p * (1 - p) / nBar) : 0;
+  const zBench = sigma > 0 ? (usl - p) / sigma : null;
+  return {
+    p, pPct: p * 100, ppm, usl, uslPct, nBar, sigma, zBench,
+    met: p <= usl,
+    diffPp: (p - usl) * 100
+  };
+}
+
+function formatZBench(z) {
+  if (z == null || !Number.isFinite(z)) return '—';
+  if (Math.abs(z) >= 100) return z > 0 ? '100+' : '-100';
+  return z.toFixed(2);
+}
+
+function buildBinomialCapHtml(bd) {
+  const cap = calcBinomialCapability(bd, targetDefectRate);
+  const metColor = cap.met ? 'var(--success)' : 'var(--danger)';
+  const zStr = formatZBench(cap.zBench);
+  const diffStr = (cap.diffPp >= 0 ? '+' : '') + cap.diffPp.toFixed(2) + '%p';
+  return `<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card"><div class="value" style="color:var(--primary)">${pct(cap.pPct)}</div><div class="label">불량률 p̂</div></div>
+    <div class="kpi-card"><div class="value" style="color:var(--warning)">${fmt(Math.round(cap.ppm))}</div><div class="label">PPM</div></div>
+    <div class="kpi-card"><div class="value">${pct(cap.uslPct)}</div><div class="label">목표 불량률 (USL)</div></div>
+  </div>
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-top:10px">
+    <div class="kpi-card"><div class="value" style="color:${cap.diffPp <= 0 ? 'var(--success)' : 'var(--danger)'}">${diffStr}</div><div class="label">목표 대비 차이</div></div>
+    <div class="kpi-card"><div class="value" style="color:var(--primary)">${zStr}</div><div class="label">Z.Bench</div></div>
+    <div class="kpi-card"><div class="value" style="color:${metColor}">${cap.met ? '달성' : '미달'}</div><div class="label">목표 여부</div></div>
+  </div>
+  <p style="font-size:11px;color:var(--text-light);margin-top:10px;line-height:1.5">
+    계수치(불량 건수) 기준 이항 공정능력입니다. 계량치 Cpk/Ppk가 아닙니다.
+    Z.Bench = (목표불량률 − p̂) / √(p̂(1−p̂)/n̄), n̄는 일별 평균 생산수량.
+  </p>`;
 }
 
 /* ── 주간 보고: 수율 요약 계산 ── */
@@ -6571,10 +6737,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, filtered) {
   window._rawFiltered = filtered || [];
 
   // 분석 시각 표시
-  const now = new Date();
-  const nowLabel = now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일 '
-    +String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  $('lastAnalysisDate').textContent = '최근 분석: ' + nowLabel;
+  updateDataSourceBanner();
 
   // 이전 저장 데이터(구버전) 호환: 불량률/PPM이 없으면 즉시 보정
   if (!Number.isFinite(kpi.PPM)) {
@@ -7170,9 +7333,14 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, filtered) {
     </p>
     <div id="chartSPC"></div>
   </div>`;
+  t5Html += `<div class="chart-box">
+    <h3>이항 공정능력 (계수치)</h3>
+    <div id="binomialCapArea"></div>
+  </div>`;
   t5Html += `<div class="chart-box"><h3>p 관리도 요약</h3><div id="spcKpiArea"></div></div>`;
   t5.innerHTML = t5Html;
   chartSPC(byDate, $('chartSPC'));
+  $('binomialCapArea').innerHTML = buildBinomialCapHtml(byDate);
   $('spcKpiArea').innerHTML = buildSPCKpiHtml(byDate);
   initSubFilterDates('t5');
   window.applyT5SubFilter = function() {
@@ -7182,6 +7350,7 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, filtered) {
     if (!sub.length) { showToast('해당 기간 데이터가 없습니다.', 'warn', 3000); return; }
     const bd = aggByDate(sub);
     chartSPC(bd, $('chartSPC'));
+    if ($('binomialCapArea')) $('binomialCapArea').innerHTML = buildBinomialCapHtml(bd);
     $('spcKpiArea').innerHTML = buildSPCKpiHtml(bd);
     setSubFilterInfo('t5', sub);
   };
@@ -7481,52 +7650,29 @@ window.addEventListener('resize', () => {
 });
 
 /* ================================================================
-   GitHub 엑셀 자동 로드 (접속 시 최신 데이터 자동 표시)
+   부팅: GitHub data.xlsx 우선, 실패 시 localStorage 복원
    ================================================================ */
-(async function autoLoadFromGitHub() {
-  const EXCEL_URL = 'https://raw.githubusercontent.com/99805106aa-web/namdogeum-dashboard/main/data.xlsx';
-  try {
-    const response = await fetch(EXCEL_URL);
-    if (!response.ok) return;
-    const arrayBuffer = await response.arrayBuffer();
-    workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array', cellDates: true });
-    const fd = document.getElementById('fileDrop');
-    if (fd) fd.innerHTML = '<div style="color:var(--primary);font-weight:600;font-size:13px">✅ 최신 데이터 자동 로드됨 (GitHub)</div>';
-    populateSheets();
-    await new Promise(r => setTimeout(r, 300));
-    $('btnAnalyze').click();
-  } catch(e) { /* 실패 시 무시, 아래 localStorage 복원으로 fallback */ }
-})();
-
-/* ================================================================
-   페이지 로드 시 마지막 분석 결과 복원
-   ================================================================ */
-(function restoreLastAnalysis() {
+function restoreLastAnalysis() {
   try {
     const saved = localStorage.getItem('ndm_lastAnalysis');
     if (!saved) return;
     const d = JSON.parse(saved);
-    const ts = new Date(d.timestamp);
-    const dateLabel = ts.getFullYear() + '년 ' + (ts.getMonth()+1) + '월 ' + ts.getDate() + '일 '
-      + String(ts.getHours()).padStart(2,'0') + ':' + String(ts.getMinutes()).padStart(2,'0');
-    $('lastAnalysisDate').textContent = '최근 분석: ' + dateLabel;
-
-    // 저장된 defectCols 복원
     if (d.defectColsSaved) defectCols = d.defectColsSaved;
 
-    // filtered 원본 데이터 복원 (품목 심층분석, 기간비교, 애니메이션 등에 필요)
     const filteredData = d.filtered && d.filtered.length ? d.filtered : [];
-
-    // cleanedData 복원 → 필터 적용/분석 시작이 동작하도록
     if (filteredData.length) {
       cleanedData = filteredData;
-      // 날짜를 Date 객체로 복원 (JSON 직렬화 시 문자열로 변환됨)
       cleanedData.forEach(r => {
         if (r.생산일자 && !(r.생산일자 instanceof Date)) r.생산일자 = new Date(r.생산일자);
       });
     }
 
-    // 필터 날짜/품목 복원
+    dataSource = Object.assign({
+      kind: 'restore', files: [], rowCount: 0, dateFrom: '', dateTo: '', loadedAt: null
+    }, d.dataSource || {});
+    dataSource.kind = 'restore';
+    refreshDataSourceMeta();
+
     const dates = cleanedData.length ? cleanedData.map(r => dateStr(r.생산일자)).sort() : [];
     if (dates.length) {
       $('filterStart').value = dates[0];
@@ -7536,7 +7682,6 @@ window.addEventListener('resize', () => {
       $('filterEnd').min = dates[0];
       $('filterEnd').max = dates[dates.length-1];
       $('filterDateRange').textContent = `데이터 범위: ${dates[0]} ~ ${dates[dates.length-1]} (${[...new Set(dates)].length}일)`;
-      // 품목 필터 설정
       const items = [...new Set(cleanedData.map(r => r.품명))].sort();
       setupItemFilter(items);
     } else if (d.filterStart && d.filterEnd) {
@@ -7545,23 +7690,32 @@ window.addEventListener('resize', () => {
       $('filterDateRange').textContent = `데이터 범위: ${d.filterStart} ~ ${d.filterEnd}`;
     }
 
-    // 대시보드 렌더링
     const restoredAlerts = (d.byItem || []).filter(r => r.불량률 > targetDefectRate/100).sort((a,b) => b.불량률 - a.불량률);
     renderDashboard(d.kpi, d.byDate, d.byItem, d.totals, restoredAlerts, filteredData);
     setTimeout(() => attachChartDrilldowns(d.byDate, d.byItem), 700);
     if ($('presetArea')) $('presetArea').style.display = '';
-
-    // 안내 메시지
-    const notice = document.createElement('div');
-    notice.className = 'info-box info';
-    notice.style.cssText = 'margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px';
-    const noticeText = filteredData.length > 0
-      ? `이전 분석 결과를 불러왔습니다 (${dateLabel}). 필터 적용 및 재분석이 가능합니다.`
-      : `이전 분석 결과를 표시 중입니다 (${dateLabel}). 새 파일을 업로드하면 전체 기능이 활성화됩니다.`;
-    notice.innerHTML = `<span>${noticeText}</span>
-      <button class="btn btn-sm" style="background:var(--gray);color:#fff" onclick="this.parentElement.remove()">닫기</button>`;
-    $('dashboard').insertBefore(notice, $('dashboard').firstChild);
+    $('filterArea').style.display = '';
   } catch(e) { /* 복원 실패 시 무시 */ }
+}
+
+(async function bootData() {
+  const EXCEL_URL = 'https://raw.githubusercontent.com/99805106aa-web/namdogeum-dashboard/main/data.xlsx';
+  try {
+    const response = await fetch(EXCEL_URL);
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array', cellDates: true });
+      dataSource.kind = 'github';
+      dataSource.files = ['data.xlsx'];
+      const fd = document.getElementById('fileDrop');
+      if (fd) fd.innerHTML = '<div style="color:var(--primary);font-weight:600;font-size:13px">GitHub data.xlsx 자동 로드됨</div>';
+      populateSheets();
+      await new Promise(r => setTimeout(r, 300));
+      $('btnAnalyze').click();
+      return;
+    }
+  } catch (e) { /* GitHub 실패 시 복원 */ }
+  restoreLastAnalysis();
 })();
 
 </script>
@@ -7571,19 +7725,9 @@ window.addEventListener('resize', () => {
      ══════════════════════════════════════════════════════ -->
 <script>
 /* ────────────────────────────────────────────────
-   A-01: 세션 복원 배너 강화
-   (기존 복원 로직은 유지, 배너만 개선)
+   A-01: 세션 복원 배너 (출처 배너로 대체)
    ──────────────────────────────────────────────── */
-// saveData에 파일명/건수 포함은 handleFiles에서 처리
-const _origHandleFiles = handleFiles;
-function handleFiles(files) {
-  _origHandleFiles(files);
-  // 파일명 저장 (복원 배너용)
-  try {
-    const names = Array.from(files).map(f => f.name).join(', ');
-    localStorage.setItem('ndm_lastFilename', names);
-  } catch(e) {}
-}
+/* handleFiles에서 ndm_lastFilename 저장 */
 
 /* ────────────────────────────────────────────────
    A-02: 필터 프리셋
