@@ -2903,6 +2903,37 @@ function exportExcel(kpi, byDate, byItem, totals) {
   XLSX.writeFile(wb, '생산현황_분석_리포트.xlsx');
 }
 
+function exportAggTable() {
+  const d = window._aggData;
+  const mode = window._t2AggMode || 'daily';
+  const modeNames = { daily: '일별', weekly: '주별', monthly: '월별' };
+  const modeName = modeNames[mode] || '일별';
+  const headers = d && d.headers;
+  const rows = d && d[mode];
+  if (!headers || !rows || !rows.length) {
+    showToast('내보낼 집계 데이터가 없습니다.', 'warn', 3000);
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    showToast('엑셀 라이브러리를 불러오지 못했습니다.', 'error', 4000);
+    return;
+  }
+  const aoa = [headers, ...rows.map(r => headers.map(h => {
+    const v = r[h];
+    if (v == null) return '';
+    if (typeof h === 'string' && h.toUpperCase().includes('PPM')) {
+      return Math.round(typeof v === 'number' ? v : calcPPM(r.불량수량, r.생산수량));
+    }
+    if (typeof h === 'string' && h.includes('률') && typeof v === 'number') {
+      return +(v * 100).toFixed(2);
+    }
+    return v;
+  }))];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), modeName + '_집계');
+  XLSX.writeFile(wb, '집계_' + modeName + '_' + dateStr(new Date()) + '.xlsx');
+}
+
 /* ================================================================
    탭 전환
    ================================================================ */
@@ -3863,7 +3894,8 @@ function renderDrilldown(data, byItem, el) {
 /* ================================================================
    Phase 2: 테이블 강화 (정렬 + 검색 + 조건부서식)
    ================================================================ */
-function makeTableEnhanced(headers, rows, id) {
+function makeTableEnhanced(headers, rows, id, opts) {
+  opts = opts || {};
   let html='<div class="scroll-hint">&#8592; 좌우 스크롤 가능 &#8594;</div>';
   // A-05: 열 토글 + A-04: 핀 버튼 툴바
   const hasDate = headers.includes('생산일자');
@@ -3873,6 +3905,7 @@ function makeTableEnhanced(headers, rows, id) {
     <div class="col-toggle-popover" id="colPopover_${id}" style="display:none">
       ${headers.map((h,i)=>`<label><input type="checkbox" checked onchange="toggleColumn('${id}',${i},this.checked)"> ${h}</label>`).join('')}
     </div></div>`;
+  if(opts.exportable) html+=`<button onclick="exportAggTable()" title="현재 집계 단위 데이터를 엑셀로 저장">엑셀 내보내기</button>`;
   html+=`</div>`;
   html+=`<input type="text" placeholder="검색..." style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px;min-height:40px" onInput="filterTable('${id}',this.value)">`;
   html+=`<div class="tbl-wrap"><table class="data-tbl" id="${id}"><thead><tr>`;
@@ -7042,12 +7075,12 @@ function renderDashboard(kpi, byDate, byItem, totals, alerts, filtered) {
   chartWeekdayPattern(byDate, $('chartWeekday'));
   chartWeekdayScatter(byDate, $('chartProdVsDefect'));
   window._aggData = {daily:byDate, weekly:byWeek, monthly:byMonth, last14:byDate.slice(-14), headers:dateHeaders};
-  $('aggTableArea').innerHTML = makeTableEnhanced(dateHeaders, byDate, 'tblDate');
+  $('aggTableArea').innerHTML = makeTableEnhanced(dateHeaders, byDate, 'tblDate', { exportable: true });
   initSubFilterDates('t2');
   window.showAggTable = function(mode) {
     window._t2AggMode = mode;
     const d = window._aggData;
-    $('aggTableArea').innerHTML = makeTableEnhanced(d.headers, d[mode], 'tblDate');
+    $('aggTableArea').innerHTML = makeTableEnhanced(d.headers, d[mode], 'tblDate', { exportable: true });
     ['Daily','Weekly','Monthly'].forEach(m => {
       const btn = $('btnAgg' + m);
       if (!btn) return;
